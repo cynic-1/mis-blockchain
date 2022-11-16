@@ -1,0 +1,217 @@
+Building the Driver and application:
+--------------------
+	Run the following command in the driver source folder:
+		$ make
+
+	Once the driver is compliled, the loadable module ax99100_spi.ko will be created in the same folder.
+
+	**  '$' --this symbol represents the shell prompt on linux			
+
+Loading the Driver:
+-------------------
+	
+	To load the driver use the following command:
+		$ insmod ax99100_spi.ko
+
+	**  '$' --this symbol represent the shell prompt on linux			
+
+Unloading the Driver:
+---------------------
+
+	To unload the driver use the following command:
+		$rmmod ax99100_spi
+
+	**  '$' --this symbol represent the shell prompt on linux	
+
+Kernels:
+--------
+
+	This driver is currently developed and tested on 2.6.13 linux kernel and above 	
+	
+	
+	
+SPI Test Tool Flow:
+-------------------
+
+	This spi_test tool is used for the AX99100 SPI Demo Board non decoder.
+	The test case according to the following steps:
+	
+	#Step 1:
+		Set the SPI Control Master Register. Input 457 to set SPIMEN, ASS and SSOE bit.
+	
+	/-----------------------------------------------------------------/
+	SPICMR Setting
+	
+	Number: 0	1	2	3	4	5	6	7		
+	Name:   SSP	CPHA	CPOL	LSB	SPIMEN	ASS	SWE	SSOE	
+	
+	Example: Need to set SPIMEN ASS SSOE bits, and the value is 457
+	Input the value of SPICMR: 457
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 2:
+		Select SPI Source Clocks. Input 0 to select the source clock, 125MHz.
+	
+	/-----------------------------------------------------------------/
+	SPICSS SPICKS Setting
+	
+	Valus:	0:125MHz
+		1:100MHz
+		2,3:EXT_CLK
+	Input the value of SPICKS: 0
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 3:
+		Select whether to enable the clock divide. Input 1 to enable the clock divider.
+	
+	/-----------------------------------------------------------------/
+	SPICSS SPIDIVEN Setting
+	
+	Valus:	0:Disable
+		1:Enable
+	Input the value of SPIDIVEN: 1
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 4:
+		Set the SPI Divider. Input 3 to set the SPI Divider.
+	
+	/-----------------------------------------------------------------/
+	SPIDIVIDER Setting
+
+	Valus:	0 - 255
+	Input the value of SPIDIVIDER: 3
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 5:
+		Select whether to enable the external decoder. Input 0 to disable the externel decoder.
+	
+	/-----------------------------------------------------------------/
+	Externel Decoder Setting
+
+	Valus:	0:Disable
+		1:Enable
+	Input the value of EDE: 0
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 6:
+		Select the desired slave device. Input 0 to select Device 0.
+	
+	/-----------------------------------------------------------------/
+	Divice Setting
+
+	Valus:	0 - 2 (Device 0 - Device 2)
+	Input the value of device: 0
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 7:
+		Set the test count. Input 10 to perform ten times for test.
+	
+	/-----------------------------------------------------------------/
+	Data Test Count Setting
+
+	Input the value of test count: 10
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 8:
+		Select Tx, Rx or TXRX(Compare). Input 2 to select TX & RX (Compare data).
+	
+	/-----------------------------------------------------------------/
+	Data Tx/Rx Direction Setting
+
+	Valus:	0:TX
+		1:RX
+		2:TX & RX
+	Input the value of direction: 2
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 9:
+		Set the data pattern type. Input 255 to set the data pattern type. (255 -> 0xff)
+	
+	/-----------------------------------------------------------------/
+	Data Pattern Type Setting
+
+	Valus:	0 - 255 (0x00 - 0xff)
+	Input the value of pattern: 255
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 10:
+		Select Interrupt or Polling. Input 1 to select the Polling mode.
+	
+	/-----------------------------------------------------------------/
+	Data Interrupt Setting
+
+	Method:	0:Interrupt
+		1:Polling
+	Select the mode: 1
+	/-----------------------------------------------------------------/
+	
+	
+	#Step 11:
+		If you want to modify one data setting, select the data item.
+		Run test to select number 9.
+	
+	/-----------------------------------------------------------------/
+	*************************************************
+	*               Test SPI Setting                *
+	*************************************************
+	**Initial Information:
+	SPICMR: 0xb0 ( SPIMEN ASS SSOE )
+	SPICKS: 0x00 ( 125MHz )		SPIDIVEN: 0x1 ( Enable )	SPIDIVIDER: 3
+
+	**Test Setting:
+	Test Direction: TX & RX
+	Device Num.:  0x6	Test Count:     10	Externel Decoder: 0x0 ( Disable )
+	Pattern Type: 0xff	Data Length:   256	Interrupt Mode:   Polling
+
+	***Initial data***
+	 0: Modify SPICMR
+	 1: Modify SPICKS
+	 2: Modify SPIDIVIDER
+	***Test setting***
+	 3: Select Device
+	 4: Modify Data Pattern(for tx)
+	 5: Modify Test Count
+	 6: Select Tx or Rx
+	 7: Modify Data Length
+	 8: Select Interrupt Mode
+
+	 9: Test performace.
+	99: Exit the test tool.
+	Please choose: 9
+	/-----------------------------------------------------------------/
+	
+	
+	#Result:
+		If you want to run test with the same setting, input Y or y.
+		Otherwise, input N or n.
+		
+	/-----------------------------------------------------------------/
+	*************************************************
+	*               Test SPI Setting                *
+	*************************************************
+	**Initial Information:
+	SPICMR: 0xb0 ( SPIMEN ASS SSOE )
+	SPICKS: 0x00 ( 125MHz )		SPIDIVEN: 0x1 ( Enable )	SPIDIVIDER: 3
+
+	**Test Setting:
+	Test Direction: TX & RX
+	Device Num.:  0x6	Test Count:     10	Externel Decoder: 0x0 ( Disable )
+	Pattern Type: 0xff	Data Length:   256	Interrupt Mode:   Polling
+	*************************************************
+	*                 Throughput                    *
+	*************************************************
+	Test Counter: 10
+	TX Throughput: 0.385650 MB/s
+	RX Throughput: 4.569484 MB/s
+
+	Test again?(Y/N):n	
+	/-----------------------------------------------------------------/

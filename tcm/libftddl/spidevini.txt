@@ -1,0 +1,8 @@
+		   dev        speed  debug_level
+spidev[0]:/dev/spi0:42000000:0
+
+dev 设备名称
+speed 设备速率
+debug_level 调试级，默认为0，其他值暂不清楚。
+
+

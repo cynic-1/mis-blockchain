@@ -1,0 +1,65 @@
+[Log]
+LogToFile = false
+LogPath   = ./logs/log.log
+Level     = 6
+
+[Node]
+WorkerList             = 127.0.0.1:5010,127.0.0.1:5011,127.0.0.1:5012,127.0.0.1:5013,127.0.0.1:5014
+WorkerCandidateList    = 127.0.0.1:5010,127.0.0.1:5011,127.0.0.1:5012,127.0.0.1:5013,127.0.0.1:5014
+VoterList              = 127.0.0.1:5010,127.0.0.1:5011,127.0.0.1:5012,127.0.0.1:5013,127.0.0.1:5014
+BCManagementServerList = 127.0.0.1:5010,127.0.0.1:5011,127.0.0.1:5012,127.0.0.1:5013,127.0.0.1:5014
+ServerNum              = 1
+SingleServerNodeNum    = 5
+IdentityIdentifier     = 
+IP                     = 127.0.0.1
+PubIP                  = 
+Port                   = 5010
+HostName               = 本地
+AreaName               = Shenzhen
+CountryName            = China
+Longitude              = 114.07
+Latitude               = 22.62
+CacheTime              = 10
+IsNewJoin              = 0
+IsMINConn              = false
+
+[Consensus]
+PubkeyList          = 048244f08e9ca90437b76ef4a43b2565c50af5825b04a6d03869d7337b5e06498e22d66d10fb98bf10b71884f22c469b15c2bbc66dbdc3274125ddc0d618e9dabc,0473e471c896e5706eaea2eee66f78eaebbf908d76902239aa47859739a5fece1011924e0b8809b4a798185a4ec76d992f3f3090e2b327b3c9c48fa2349d714433,042dd6e7dee25672647af712cc24249ba3430dd7fa4b28e88ad777a65ca08dd8f91fe2fc1590b00e0c87c122b2b32a815932afd884576664a92f2e9b493f79d3c9,04725b4b52a64d3de5ff72ecc6fbd1ed8f206cb4a9f51a84ff92eab9cdc618c96ec5515382f8ce0ca418442fe99d6d0a1958bce3f1fccafa9c06540f43b5852037,04745a0bd502b4e45b122673483d90ead5912153b39e40b72045bdd703f3bb184bf34cd3d125918cb3af42b97f318122c90f57df271fa0f932be989348739c8c5b
+PrikeyList          = b511d6d3b26abc31191810104ddc55907e48656e3695cca3445a4f8907f45c73,1858a6977baaa58dfdeb8917f485e895ad09655e6d85a39046cd0f524565b95a,0225bf30993eed1dc0770dc325107a204bc6b3ae2436796e964c853546146fe9,c72b764d8fe227d60326ddcd6a289387120879d1e530eab17be0c6694a0465f3,c13b9d7a86366b5e5600159882a47571d995213a2cfdfc0a001964e09efadd9a
+MyPubkey            = 
+MyPrikey            = 
+GenesisDutyWorker   = 0
+WorkerNum           = 5
+VotedNum            = 5
+BlockGroupPerCycle  = 100000
+Tcut                = 20.00
+GenerateBlockPeriod = 8.00
+TxPoolSize          = 100000
+
+[SSL]
+ServicePortforFE       = 8010
+SSLPrikey              = c907424efdce6903ff380a351d7f2cce3ff06d58512792873abd090bf1c9a84b
+SSLPubkey              = 04e067d23d3fd3ba4ead731b78346cde1084a837760f234621e36a93632b6f6418d4d6b735cd0ee19a8707ceca12ee4ff8106196ad8122ab2c89a7e11ba00d35b7
+SSLIP                  = 0.0.0.0
+ServicePortforVPN      = 9999
+ServiceSSLPortforVPN   = 6666
+ServicePortforVPNFE    = 8888
+ServiceSSLPortforVPNFE = 7777
+
+[SESSION]
+DefaultExpiration = 1000
+CleanupInterval   = 10
+
+[MIR]
+SqlitePath            = /home/min/identity/
+CertQueryPrefixforMIR = /mis/cert
+CertRespondforMIR     = /mir/cert
+
+[SMS]
+SecretID  = AKIDpUs0qQjlVyB7mAH7gz2KM6ZlfIfla7NN
+SecretKey = kDPJxKQFo55oGRKwGK7drpWw5xYsufAN
+
+[QR]
+AppId     = wx8353d0a14c2c99fe
+AppSecret = 1f4bf3af036e2ebc684b292358e4368b
+

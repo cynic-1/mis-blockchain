@@ -1,0 +1,55 @@
+[Log]
+LogToFile = false
+LogPath   = ./logs/log.log
+Level     = 0
+
+[Node]
+WorkerList             = 121.15.171.86:5010,121.15.171.84:5010,121.15.171.85:5010,121.15.171.90:5010,121.15.171.91:5010
+WorkerCandidateList    = 121.15.171.86:5010,121.15.171.84:5010,121.15.171.85:5010,121.15.171.90:5010,121.15.171.91:5010
+VoterList              = 121.15.171.86:5010,121.15.171.84:5010,121.15.171.85:5010,121.15.171.90:5010,121.15.171.91:5010
+BCManagementServerList = 121.15.171.86:5010,121.15.171.84:5010,121.15.171.85:5010,121.15.171.90:5010,121.15.171.91:5010
+ServerNum              = 5
+SingleServerNodeNum    = 1
+IdentityIdentifier     = 
+IP                     = 121.15.171.84
+PubIP                  = 121.15.171.84
+Port                   = 5010
+HostName               = node11
+AreaName               = China
+CountryName            = 
+Longitude              = 114.07
+Latitude               = 22.62
+CacheTime              = 10
+IsNewJoin              = 0
+IsMINConn              = true
+
+[Consensus]
+PubkeyList          = 04e9319bdb8caa6894eb975da160acbaa51f3141966d7f9e9c1450326ebbe1a2a0bd4618f0811cd605d906d2e4c2dd8d8009bc76951a05174a25f7fffee7a07ae5
+PrikeyList          = 976557a50ddc00b8162ce7938cf0d9a5bb14c81ed0e1a73d71e1d6d1b4538270
+MyPubkey            = 
+MyPrikey            = 
+GenesisDutyWorker   = 0
+WorkerNum           = 5
+VotedNum            = 5
+BlockGroupPerCycle  = 100000
+Tcut                = 20.00
+GenerateBlockPeriod = 4.00
+TxPoolSize          = 100000
+
+[SSL]
+ServicePortforFE     = 8010
+SSLPrikey            = c907424efdce6903ff380a351d7f2cce3ff06d58512792873abd090bf1c9a84b
+SSLPubkey            = 04e067d23d3fd3ba4ead731b78346cde1084a837760f234621e36a93632b6f6418d4d6b735cd0ee19a8707ceca12ee4ff8106196ad8122ab2c89a7e11ba00d35b7
+SSLIP                = 0.0.0.0
+ServicePortforVPN    = 9999
+ServiceSSLPortforVPN = 6666
+
+[SESSION]
+DefaultExpiration = 10
+CleanupInterval   = 10
+
+[MIR]
+SqlitePath            = /home/min/identity/
+CertQueryPrefixforMIR = /mis/cert
+CertRespondforMIR     = /mir/cert
+

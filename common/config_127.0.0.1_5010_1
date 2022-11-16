@@ -1,0 +1,37 @@
+[Log]
+LogToFile = false
+LogPath   = ./logs/log.log
+
+[Node]
+WorkerList           = 127.0.0.1:5010
+WorkerCandidateList  = 127.0.0.1:5010
+VoterList            = 127.0.0.1:5010
+BCManagementServerList = 127.0.0.1:5010
+ServerNum            = 1
+SingleServerNodeNum  = 1
+IdentityIdentifier   = 
+IP                   = 127.0.0.1
+PubIP                = 
+Port                 = 5010
+Hostname             = 本地
+IsNewJoin            = 0
+IsMINConn            = false
+
+[Consensus]
+PubkeyList          = 04b30e8a19d1fe9e0291358994fe2ab5dad871a5a3070f03104b0219ac660b9aaa42d82ee3fbba28565c00cb6884e0716cee51a6fda19f0cf94d673bcf2ba5c6ef
+PrikeyList          = f1b4921b6c2775d12406de07b50a4ac5259ed221a0f2e9c819a7b9776e32c328
+MyPubkey            = 
+MyPrikey            = 
+GenesisDutyWorker   = 0
+WorkerNum           = 1
+VotedNum            = 1
+BlockGroupPerCycle  = 100000
+Tcut                = 20.00
+GenerateBlockPeriod = 8.00
+TxPoolSize          = 100000
+
+[SSL]
+ServicePort    = 8010
+SSLPrikey      = c907424efdce6903ff380a351d7f2cce3ff06d58512792873abd090bf1c9a84b
+SSLPubkey      = 04e067d23d3fd3ba4ead731b78346cde1084a837760f234621e36a93632b6f6418d4d6b735cd0ee19a8707ceca12ee4ff8106196ad8122ab2c89a7e11ba00d35b7
+

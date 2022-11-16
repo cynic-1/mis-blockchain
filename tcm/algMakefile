@@ -1,0 +1,50 @@
+CFLAGS +=-L/usr/local/ssl/lib/ -I./lib -g
+
+CC = gcc
+DEFS += -DTCM_POSIX=1 
+DIR_OUT := algout
+DIR_LIB := alg
+DIR_UTILS := tcmutils
+TCMLIB := TCMALG.a
+
+
+SRC_UTILS = ${DIR_UTILS}/test_getcapability.c 
+
+OBJ_UTILS = $(patsubst ${DIR_UTILS}/%.c,${DIR_OUT}/%.o, ${SRC_UTILS}) 
+BIN = $(patsubst ${DIR_UTILS}/%.c,${DIR_OUT}/%, ${SRC_UTILS})
+
+
+
+SRC_LIB_ALL = $(wildcard ${DIR_LIB}/*.c)
+#SRC_LIB = $(filter-out ${DIR_LIB}/crypto.c ${DIR_LIB}/keys.c ${DIR_LIB}/pcrs.c ${DIR_LIB}/serialize.c ${DIR_LIB}/tcm_marshalling.c, $(SRC_LIB_ALL))
+# SRC_LIB = $(filter-out ${DIR_LIB}/crypto.c  ${DIR_LIB}/pcrs.c , $(SRC_LIB_ALL))
+SRC_LIB = $(SRC_LIB_ALL)
+
+OBJ_LIB = $(patsubst ${DIR_LIB}/%.c,${DIR_OUT}/%.o, ${SRC_LIB}) 
+
+all:$(DIR_OUT) $(BIN)
+
+$(DIR_OUT): 
+	mkdir -p $(DIR_OUT)
+
+$(BIN):$(DIR_OUT)/%:$(DIR_OUT)/%.o $(OBJ_UTILS) $(TCMLIB)
+	$(CC) $< $(TCMLIB)  $(DEFS) -o $@
+
+$(TCMLIB):$(OBJ_LIB)
+	ar  -r $(TCMLIB) $(OBJ_LIB)
+
+$(OBJ_LIB):${DIR_OUT}/%.o:${DIR_LIB}/%.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@ 
+
+$(OBJ_UTILS):${DIR_OUT}/%.o:${DIR_UTILS}/%.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@ 
+
+clean:
+	rm -rf $(DIR_OUT)/*.o $(TCMLIB) 
+#!pubek !SM2_Signing.key
+
+.PHONY:all clean
+
+
+
+

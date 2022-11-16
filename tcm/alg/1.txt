@@ -1,0 +1,8 @@
+ 驱动器 E 中的卷是 work
+ 卷的序列号是 7E31-1BEE
+
+ E:\Nationz\code\NAZTMI\code\mytcmtool\alg 的目录
+
+2011/11/23  08:46               293 stdafx.cpp
+               1 个文件            293 字节
+               0 个目录  1,631,027,200 可用字节

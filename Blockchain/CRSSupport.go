@@ -23,9 +23,9 @@ type crsPool struct {
 
 func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	// ping 测试路由
-	v.GET("/mis/ping", node.ping)
+	v.GET("/ping", node.ping)
 	// 存储crs上传至MIS的记录的路由
-	v.POST("/mis/crs/upload", node.upload)
+	v.POST("/upload", node.upload)
 }
 
 func (node *Node) ping(c *gin.Context) {

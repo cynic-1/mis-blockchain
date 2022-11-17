@@ -32,7 +32,7 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				case MetaData.UserLogOperation:
 					node.UpdateUserLogVariables(transactionInterface)
 				case MetaData.CRSRecordOperation:
-					node.UpdateUserLogVariables(transactionInterface)
+					node.UpdateCRSRecordVariables(transactionInterface)
 				}
 			}
 			node.TxsAmount += uint64(len(eachBlock.Transactions))

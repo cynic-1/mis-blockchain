@@ -3,10 +3,12 @@ package Node
 import (
 	"MIS-BC/MetaData"
 	"MIS-BC/common"
+	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"sync"
 )
 
@@ -48,7 +50,6 @@ func (node *Node) upload(c *gin.Context) {
 
 func (node *Node) UploadCRSRecord(record *MetaData.CrsChainRecord) error {
 	transaction := node.CRSItemPool.crsPool.Get().(*MetaData.CrsChainRecord)
-	// node.mongo.UpdateIdentityModifyRecordsforUploadUserLog(log)
 	transaction.Data = record.Data
 	transaction.BlockHash = record.BlockHash
 	transaction.TransactionHash = record.TransactionHash
@@ -81,4 +82,56 @@ func (node *Node) StartUploadCRSRecordServer() error {
 			}
 		}
 	}
+}
+
+func (node *Node) SendHeightofBlock(height int, serialNumber uint32, transactionHash string) (*http.Response, error) {
+	bodyJson, _ := json.Marshal(map[string]interface{}{
+		"height":          height,
+		"serialNumber":    serialNumber,
+		"transactionHash": transactionHash,
+	})
+	r, err := http.DefaultClient.Post(
+		"http://118.24.6.91:8201"+"/api/v1/crs/chainRecord/set?transactionHash="+transactionHash+"&height="+
+			string(height)+"&serialNumber="+string(serialNumber),
+		"application/json",
+		strings.NewReader(string(bodyJson)),
+	)
+
+	return r, err
+
+	////add post body
+	//var bodyJson []byte
+	//var req *http.Request
+	//if body != nil {
+	//	var err error
+	//	bodyJson, err = json.Marshal(body)
+	//	if err != nil {
+	//		log.Println(err)
+	//		return nil, errors.New("http post body to json failed")
+	//	}
+	//}
+	//req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyJson))
+	//if err != nil {
+	//	log.Println(err)
+	//	return nil, errors.New("new request is fail: %v \n")
+	//}
+	//req.Header.Set("Content-type", "application/json")
+	////add params
+	//q := req.URL.Query()
+	//if params != nil {
+	//	for key, val := range params {
+	//		q.Add(key, val)
+	//	}
+	//	req.URL.RawQuery = q.Encode()
+	//}
+	////add headers
+	//if headers != nil {
+	//	for key, val := range headers {
+	//		req.Header.Add(key, val)
+	//	}
+	//}
+	////http client
+	//client := &http.Client{}
+	//log.Printf("Go %s URL : %s \n", http.MethodPost, req.URL.String())
+	//return client.Do(req)
 }

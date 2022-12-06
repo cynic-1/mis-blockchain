@@ -237,6 +237,7 @@ func (node *Node) Init() {
 	node.rule = ratelimit.NewRule()     //
 	node.rule.AddRule(time.Minute*5, 5) //
 	node.BCStatus = new(BCStatus)
+	node.BCStatus.BgsList = list.New()
 	node.BCStatus.TxsNumList = list.New()
 	node.BCStatus.TxsList = list.New()
 	node.BCStatus.Overview = new(OverviewInfo)
@@ -323,6 +324,27 @@ func (node *Node) LoadBlockChain() {
 		node.IdentityTransList = list.GetIdentityTransList()
 	}
 	fmt.Println("_______HasTransactionAnalysis?", node.mongo.HasTransactionAnalysis())
+	if node.mongo.HasTransactionAnalysis() {
+		talist := node.mongo.GetTransactionAnalysisFromDatabase()
+		fmt.Println("_______talist", talist)
+		node.TxsAmount = talist.TxsNum
+		node.BCStatus.Overview.PreTransactionNum = talist.PreTxsNum
+		for i := 0; i < len(talist.TxsList); i++ {
+			node.BCStatus.TxsNumList.PushBack(talist.TxsList[i])
+		}
+	} else {
+		if node.BCStatus.TxsNumList.Len() < 15 {
+			node.BCStatus.Mutex.Lock()
+			for {
+				node.BCStatus.TxsNumList.PushBack(uint64(0))
+				if node.BCStatus.TxsNumList.Len() == 15 {
+					node.BCStatus.Mutex.Unlock()
+					break
+				}
+			}
+		}
+	}
+
 	if node.mongo.HasTransactionAnalysis() {
 		talist := node.mongo.GetTransactionAnalysisFromDatabase()
 		fmt.Println("_______talist", talist)

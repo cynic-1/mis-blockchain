@@ -11,6 +11,7 @@ package MongoDB
 import (
 	"MIS-BC/MetaData"
 	"MIS-BC/common"
+	"encoding/json"
 	"gopkg.in/mgo.v2/bson"
 	"hash/crc32"
 	"log"
@@ -205,6 +206,64 @@ func (pl *Mongo) GetTransactionAnalysisFromDatabase() MetaData.TransactionAnalys
 	return item
 }
 
+func (pl *Mongo) HasTransactionList() bool {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "txs_list"
+	session := pl.pool.AcquireSession()
+	//session.SetMode(mgo.Monotonic, true)
+	defer session.Release()
+
+	c := session.DB("blockchain").C(subname)
+	nums, err := c.Find(nil).Count()
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	if nums > 0 {
+		return true
+	}
+	return false
+}
+
+func (pl *Mongo) SaveTransactionListToDatabase(item MetaData.TransactionAnalysis) {
+	typ := "txs_list"
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + typ
+
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	c := session.DB("blockchain").C(subname)
+	count, err := c.Find(nil).Count()
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	if count > 0 {
+		var ta MetaData.TransactionAnalysis
+		c.Find(nil).One(&ta)
+		c.Remove(ta)
+	}
+	pl.InsertToMogoTransactionAnalysis(item, subname)
+}
+
+func (pl *Mongo) GetTransactionListFromDatabase() MetaData.TransactionAnalysis {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "txs_list"
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var item MetaData.TransactionAnalysis
+	c := session.DB("blockchain").C(subname)
+	count, err := c.Find(nil).Count()
+	if count == 1 {
+		err = c.Find(nil).Limit(1).One(&item)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+	}
+
+	return item
+}
+
 func (pl *Mongo) GetAmount() int {
 	return pl.QueryHeight() + 1
 }
@@ -245,5 +304,141 @@ func (pl *Mongo) GetBlockFromDatabase(height int) MetaData.BlockGroup {
 	}
 
 	blockgroup.Blocks = true_blocks
+	return blockgroup
+}
+
+func (pl *Mongo) GetLastBGsInfo() {
+	var bgs []MetaData.BlockGroup
+	for i := 0; i < 10; i++ {
+		if pl.Height-i < 0 {
+			break
+		}
+		bgs[i] = pl.GetBlockFromDatabase(pl.Height - i)
+
+		if bgs[i].Height > 0 {
+			for x, eachBlock := range bgs[i].Blocks {
+				for _, eachTransaction := range eachBlock.Transactions {
+					transactionHeader, transactionInterface := MetaData.DecodeTransaction(eachTransaction)
+					switch transactionHeader.TXType {
+					case MetaData.IdentityAction:
+						if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
+							data, _ := json.Marshal(transaction)
+							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
+						}
+					case MetaData.IdTransformation:
+						if transaction, ok := transactionInterface.(*MetaData.IdentityTransformation); ok {
+							data, _ := json.Marshal(transaction)
+							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
+						}
+					case MetaData.UserLogOperation:
+						if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
+							data, _ := json.Marshal(transaction)
+							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
+						}
+					case MetaData.CRSRecordOperation:
+						if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+							data, _ := json.Marshal(transaction)
+							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
+						}
+					}
+
+				}
+			}
+		} else if bgs[i].Height == 0 {
+			if len(bgs[i].Blocks) != 0 {
+				if bgs[i].Blocks[0].Height == 0 {
+					transactionHeader, transactionInterface := MetaData.DecodeTransaction(bgs[i].Blocks[0].Transactions[0])
+					if transactionHeader.TXType == MetaData.Genesis {
+						if genesisTransaction, ok := transactionInterface.(*MetaData.GenesisTransaction); ok {
+							data, _ := json.Marshal(genesisTransaction)
+							bgs[i].Blocks[0].Transactions_s = append(bgs[i].Blocks[0].Transactions_s, string(data))
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup {
+	session := pl.pool.AcquireSession()
+	//session.SetMode(mgo.Monotonic, true)
+	defer session.Release()
+
+	blockgroup := make([]MetaData.BlockGroup, limit)
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+
+	first := (skip + 1) % 100000
+	last := (skip + limit) % 100000
+
+	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+
+	if 99990 <= first && first < 100000 && 0 <= last && last < 10 {
+		err := c1.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		blockgroup1 := make([]MetaData.BlockGroup, limit-len(blockgroup))
+
+		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		err = c2.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup1)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+		for _, bg := range blockgroup {
+			var blocks []MetaData.Block
+			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+		}
+
+		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		for _, bg := range blockgroup1 {
+			var blocks []MetaData.Block
+			err = c4.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+			blockgroup = append(blockgroup, bg)
+		}
+
+	} else {
+		err := c1.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		for _, bg := range blockgroup {
+			var blocks []MetaData.Block
+			c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(bg.Height/(10*10000)))
+			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+		}
+	}
+
 	return blockgroup
 }

@@ -256,20 +256,6 @@ func (network *Network) HandleCRSConnection(rg *gin.RouterGroup) {
 	network.CBforCRS(rg)
 }
 
-func (network *Network) deleteConn(conn net.Conn) error {
-	if conn == nil {
-		fmt.Println("conn is nil")
-		return errors.New("conn is nil")
-	}
-	for i := 0; i < len(network.ConnSliceBC); i++ {
-		if network.ConnSliceBC[i] == conn {
-			network.ConnSliceBC = append(network.ConnSliceBC[:i], network.ConnSliceBC[i+1:]...)
-			break
-		}
-	}
-	return nil
-}
-
 func (network *Network) Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -302,6 +288,20 @@ func (network *Network) Cors() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func (network *Network) deleteConn(conn net.Conn) error {
+	if conn == nil {
+		fmt.Println("conn is nil")
+		return errors.New("conn is nil")
+	}
+	for i := 0; i < len(network.ConnSliceBC); i++ {
+		if network.ConnSliceBC[i] == conn {
+			network.ConnSliceBC = append(network.ConnSliceBC[:i], network.ConnSliceBC[i+1:]...)
+			break
+		}
+	}
+	return nil
 }
 
 //func (network *Network) Start() {

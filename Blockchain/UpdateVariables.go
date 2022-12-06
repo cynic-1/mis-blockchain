@@ -32,7 +32,8 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				case MetaData.UserLogOperation:
 					node.UpdateUserLogVariables(transactionInterface)
 				case MetaData.CRSRecordOperation:
-					node.UpdateCRSRecordVariables(transactionInterface)
+					common.Logger.Info("crs block: ", eachBlock.Height, eachBlock.BlockNum)
+					node.UpdateCRSRecordVariables(transactionInterface, eachBlock.Height, eachBlock.BlockNum)
 				}
 			}
 			node.TxsAmount += uint64(len(eachBlock.Transactions))
@@ -189,8 +190,18 @@ func (node *Node) UpdateUserLogVariables(transactionInterface MetaData.Transacti
 	}
 }
 
-func (node *Node) UpdateCRSRecordVariables(transactionInterface MetaData.TransactionInterface) {
+func (node *Node) UpdateCRSRecordVariables(transactionInterface MetaData.TransactionInterface, height int, blockNum uint32) {
 	if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+		node.BCStatus.Mutex.Lock()
+		tmp := *transaction
+		trans := &tmp
+		node.BCStatus.TxsList.PushBack(trans)
+		if node.BCStatus.TxsList.Len() > 10 {
+			i1 := node.BCStatus.TxsList.Front()
+			node.BCStatus.TxsList.Remove(i1)
+		}
+		node.BCStatus.Mutex.Unlock()
+		go node.SendHeightofBlock(height, blockNum, transaction.TransactionHash)
 		node.mongo.SaveCRSRecordToDatabase(*transaction)
 		common.Logger.Info(transaction.Data, "记录成功")
 	}

@@ -61,6 +61,7 @@ type BCStatus struct {
 	Overview   *OverviewInfo
 	Mutex      *sync.RWMutex
 	Nodes      []MetaData.BCNode
+	BgsList    *list.List
 	TxsList    *list.List
 	TxsNumList *list.List
 	Agree      float64

@@ -66,6 +66,15 @@ type PageIdentityInf struct {
 	Total      int
 }
 
+// 分页区块信息
+// @Description:
+//  1. 区块链后台给管理员前端的回复的分页身份信息
+//
+type PageBlockGroupInf struct {
+	blockgroups []MetaData.BlockGroup
+	Total       int
+}
+
 //type PageIdentityMutableInf struct {
 //	Identities []IdentityMutableInf
 //	Total int
@@ -273,15 +282,17 @@ func (node *Node) HandleFrontEndMessage(data []byte, conn net.Conn) {
 			node.GetStatusNormalList(res, conn) //  正常节点列表
 		case "GetStatusAbnormalList":
 			node.GetStatusAbnormalList(res, conn) // 异常节点列表
+		case "GetBlockInfByPage":
+			node.GetBlockInfByPage(res, conn)
 
 		case "GetOverviewInfo":
 			node.getOverviewInfo(res, conn)
 		case "GetTransactionAnalysis":
 			node.getTransactionAnalysis(res, conn)
-		case "GetLastFourBGsInfo":
-			node.getLastFourBGsInfo(res, conn)
-		case "GetLastFourTransactionsInfo":
-			node.getLastFourTransactionsInfo(res, conn)
+		case "GetLastBGsInfo":
+			node.getLastBlocksInfo(res, conn)
+		case "GetLastTransactionsInfo":
+			node.getLastTransactionsInfo(res, conn)
 
 		case "AgreeAddNewNode":
 			node.AgreeAddNewNode(res, conn)
@@ -3353,6 +3364,16 @@ func (node *Node) SendBGMsgOfCertainHeightToFrontend(res map[string]interface{},
 						data, _ := json.Marshal(transaction)
 						bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
 					}
+				case MetaData.UserLogOperation:
+					if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
+						data, _ := json.Marshal(transaction)
+						bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
+					}
+				case MetaData.CRSRecordOperation:
+					if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+						data, _ := json.Marshal(transaction)
+						bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
+					}
 				}
 			}
 		}
@@ -3614,6 +3635,84 @@ func (node *Node) GetStatusAbnormalList(res map[string]interface{}, conn net.Con
 	Network.SendResponse(conn, data, res["Key"].(string))
 }
 
+// GetBlockInfByPage 按页获取区块的所有信息
+//
+// @Description: 按页获取区块的所有信息
+// @receiver node
+// @param res
+// @param conn
+//
+func (node *Node) GetBlockInfByPage(res map[string]interface{}, conn net.Conn) {
+	if res["PageSize"] == nil || res["PageNum"] == nil {
+		resp := CommonResponse{Code: code.LESS_PARAMETER, Message: "缺少字段", Data: nil}
+		data, err := json.Marshal(resp)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		Network.SendResponse(conn, data, res["Key"].(string))
+		return
+	}
+	pageSize := int(res["PageSize"].(float64))
+	pageNum := int(res["PageNum"].(float64))
+	skip := pageSize * (pageNum - 1)
+
+	bgs := node.mongo.GetPageBlockFromDatabase(skip, pageSize)
+
+	for _, bg := range bgs {
+		if bg.Height > 0 {
+			for x, eachBlock := range bg.Blocks {
+				for _, eachTransaction := range eachBlock.Transactions {
+					transactionHeader, transactionInterface := MetaData.DecodeTransaction(eachTransaction)
+					switch transactionHeader.TXType {
+					case MetaData.IdentityAction:
+						if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
+							data, _ := json.Marshal(transaction)
+							bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
+						}
+					case MetaData.UserLogOperation:
+						if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
+							data, _ := json.Marshal(transaction)
+							bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
+						}
+					case MetaData.CRSRecordOperation:
+						if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+							data, _ := json.Marshal(transaction)
+							bg.Blocks[x].Transactions_s = append(bg.Blocks[x].Transactions_s, string(data))
+						}
+					}
+				}
+			}
+		} else if bg.Height == 0 {
+			if len(bg.Blocks) != 0 {
+				if bg.Blocks[0].Height == 0 {
+					transactionHeader, transactionInterface := MetaData.DecodeTransaction(bg.Blocks[0].Transactions[0])
+					if transactionHeader.TXType == MetaData.Genesis {
+						if genesisTransaction, ok := transactionInterface.(*MetaData.GenesisTransaction); ok {
+							data, _ := json.Marshal(genesisTransaction)
+							bg.Blocks[0].Transactions_s = append(bg.Blocks[0].Transactions_s, string(data))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var response CommonResponse
+	var message PageBlockGroupInf
+
+	message.blockgroups = bgs
+	message.Total = len(bgs)
+
+	response.Code = code.SUCCESS
+	response.Message = "获取分页区块组信息成功"
+	response.Data = message
+	data, err := json.Marshal(response)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	Network.SendResponse(conn, data, res["Key"].(string))
+}
+
 type BCOverviewInfo struct {
 	Height   int64  `json:"height"`
 	Total    uint64 `json:"total"`
@@ -3664,61 +3763,18 @@ func (node *Node) getTransactionAnalysis(res map[string]interface{}, conn net.Co
 	Network.SendResponse(conn, data, res["Key"].(string))
 }
 
-func (node *Node) getLastFourBGsInfo(res map[string]interface{}, conn net.Conn) {
-	var bgs []MetaData.BlockGroup
-	for i := 0; i < 4; i++ {
-		if int(node.BCStatus.Overview.Height)-i < 0 {
-			break
-		}
-		bgs[i] = node.mongo.GetBlockFromDatabase(int(node.BCStatus.Overview.Height) - i)
-
-		if bgs[i].Height > 0 {
-			for x, eachBlock := range bgs[i].Blocks {
-				for _, eachTransaction := range eachBlock.Transactions {
-					transactionHeader, transactionInterface := MetaData.DecodeTransaction(eachTransaction)
-					switch transactionHeader.TXType {
-					case MetaData.IdentityAction:
-						if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
-							data, _ := json.Marshal(transaction)
-							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
-						}
-					case MetaData.IdTransformation:
-						if transaction, ok := transactionInterface.(*MetaData.IdentityTransformation); ok {
-							data, _ := json.Marshal(transaction)
-							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
-						}
-					case MetaData.UserLogOperation:
-						if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
-							data, _ := json.Marshal(transaction)
-							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
-						}
-					case MetaData.CRSRecordOperation:
-						if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
-							data, _ := json.Marshal(transaction)
-							bgs[i].Blocks[x].Transactions_s = append(bgs[i].Blocks[x].Transactions_s, string(data))
-						}
-					}
-
-				}
-			}
-		} else if bgs[i].Height == 0 {
-			if len(bgs[i].Blocks) != 0 {
-				if bgs[i].Blocks[0].Height == 0 {
-					transactionHeader, transactionInterface := MetaData.DecodeTransaction(bgs[i].Blocks[0].Transactions[0])
-					if transactionHeader.TXType == MetaData.Genesis {
-						if genesisTransaction, ok := transactionInterface.(*MetaData.GenesisTransaction); ok {
-							data, _ := json.Marshal(genesisTransaction)
-							bgs[i].Blocks[0].Transactions_s = append(bgs[i].Blocks[0].Transactions_s, string(data))
-						}
-					}
-				}
-			}
-		}
-	}
-
+func (node *Node) getLastBlocksInfo(res map[string]interface{}, conn net.Conn) {
 	var response CommonResponse
+
+	var bgs []interface{}
+	node.BCStatus.Mutex.RLock()
+	for i := node.BCStatus.BgsList.Front(); i != nil; i = i.Next() {
+		bgs = append(bgs, i.Value)
+	}
+	node.BCStatus.Mutex.RUnlock()
+
 	response.Code = code.SUCCESS
-	response.Message = "获取最近4个高度的区块组成功"
+	response.Message = "获取最近10个交易成功"
 	response.Data = bgs
 
 	data, err := json.Marshal(response)
@@ -3729,7 +3785,7 @@ func (node *Node) getLastFourBGsInfo(res map[string]interface{}, conn net.Conn) 
 	Network.SendResponse(conn, data, res["Key"].(string))
 }
 
-func (node *Node) getLastFourTransactionsInfo(res map[string]interface{}, conn net.Conn) {
+func (node *Node) getLastTransactionsInfo(res map[string]interface{}, conn net.Conn) {
 	var response CommonResponse
 
 	var txs []interface{}

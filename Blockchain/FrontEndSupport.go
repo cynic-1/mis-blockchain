@@ -3774,7 +3774,7 @@ func (node *Node) getLastBlocksInfo(res map[string]interface{}, conn net.Conn) {
 	node.BCStatus.Mutex.RUnlock()
 
 	response.Code = code.SUCCESS
-	response.Message = "获取最近10个交易成功"
+	response.Message = "获取最近10个区块组成功"
 	response.Data = bgs
 
 	data, err := json.Marshal(response)

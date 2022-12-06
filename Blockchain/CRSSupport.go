@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -90,12 +91,19 @@ func (node *Node) SendHeightofBlock(height int, serialNumber uint32, transaction
 		"serialNumber":    serialNumber,
 		"transactionHash": transactionHash,
 	})
+
 	r, err := http.DefaultClient.Post(
 		"http://118.24.6.91:8201"+"/api/v1/crs/chainRecord/set?transactionHash="+transactionHash+"&height="+
-			string(height)+"&serialNumber="+string(serialNumber),
+			strconv.Itoa(height)+"&serialNumber="+strconv.Itoa(int(serialNumber)),
 		"application/json",
 		strings.NewReader(string(bodyJson)),
 	)
+
+	if err != nil {
+		common.Logger.Error("sendHeight err: ", err)
+	} else {
+		common.Logger.Info("sendHeight respond: ", r.Body)
+	}
 
 	return r, err
 

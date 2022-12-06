@@ -363,6 +363,18 @@ func (pl *Mongo) InsertToMogoTransactionAnalysis(item MetaData.TransactionAnalys
 	}
 }
 
+func (pl *Mongo) InsertToMogoTransactionList(item []MetaData.CrsChainRecord, index string) {
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	//index_mongo := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(index))))
+	c := session.DB("blockchain").C(index)
+	err := c.Insert(&item)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+}
+
 func (pl *Mongo) InsertToMogoNodeIdentityTrans(item MetaData.IdentityTransformation, index string) {
 	session := pl.pool.AcquireSession()
 	//session.SetMode(mgo.Monotonic, true)

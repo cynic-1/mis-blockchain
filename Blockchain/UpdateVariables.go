@@ -39,6 +39,15 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 			node.TxsAmount += uint64(len(eachBlock.Transactions))
 
 			node.BCStatus.Mutex.Lock()
+
+			tmp := *bg
+			trans := &tmp
+			node.BCStatus.BgsList.PushBack(trans)
+			if node.BCStatus.BgsList.Len() > 10 {
+				i1 := node.BCStatus.BgsList.Front()
+				node.BCStatus.BgsList.Remove(i1)
+			}
+
 			if bg.Height > 0 {
 				node.BCStatus.Overview.Height = int64(bg.Height)
 				node.BCStatus.Overview.TransactionNum = node.TxsAmount
@@ -53,7 +62,25 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				ta.TxsNum = node.BCStatus.Overview.TransactionNum
 				ta.PreTxsNum = node.BCStatus.Overview.PreTransactionNum
 				common.Logger.Info("overview info: ", node.BCStatus.Overview, "\ttransactionanalysis:", ta)
+
+				//var cr []MetaData.CrsChainRecord
+				//for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
+				//	cr = append(cr, j.Value.(MetaData.CrsChainRecord))
+				//}
+				//
+				//var bgs []MetaData.BlockGroup
+				//for j := node.BCStatus.BgsList.Front(); j != nil; j = j.Next() {
+				//	bgs = append(bgs, j.Value.(MetaData.BlockGroup))
+				//}
+				//common.Logger.Info("bg list: ", bg, "\ttransaction list:", cr)
+
 				node.mongo.SaveTransactionAnalysisToDatabase(ta)
+
+				var tlist []MetaData.CrsChainRecord
+				for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
+					tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
+				}
+				node.mongo.SaveTransactionListToDatabase(tlist)
 			}
 			node.BCStatus.Mutex.Unlock()
 		}

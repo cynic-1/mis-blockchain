@@ -224,7 +224,7 @@ func (pl *Mongo) HasTransactionList() bool {
 	return false
 }
 
-func (pl *Mongo) SaveTransactionListToDatabase(item MetaData.TransactionAnalysis) {
+func (pl *Mongo) SaveTransactionListToDatabase(item []MetaData.CrsChainRecord) {
 	typ := "txs_list"
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 	subname := index + "-" + typ
@@ -238,20 +238,20 @@ func (pl *Mongo) SaveTransactionListToDatabase(item MetaData.TransactionAnalysis
 		common.Logger.Error(err)
 	}
 	if count > 0 {
-		var ta MetaData.TransactionAnalysis
+		var ta []MetaData.CrsChainRecord
 		c.Find(nil).One(&ta)
 		c.Remove(ta)
 	}
-	pl.InsertToMogoTransactionAnalysis(item, subname)
+	pl.InsertToMogoTransactionList(item, subname)
 }
 
-func (pl *Mongo) GetTransactionListFromDatabase() MetaData.TransactionAnalysis {
+func (pl *Mongo) GetTransactionListFromDatabase() []MetaData.CrsChainRecord {
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 	subname := index + "-" + "txs_list"
 	session := pl.pool.AcquireSession()
 	defer session.Release()
 
-	var item MetaData.TransactionAnalysis
+	var item []MetaData.CrsChainRecord
 	c := session.DB("blockchain").C(subname)
 	count, err := c.Find(nil).Count()
 	if count == 1 {
@@ -307,7 +307,7 @@ func (pl *Mongo) GetBlockFromDatabase(height int) MetaData.BlockGroup {
 	return blockgroup
 }
 
-func (pl *Mongo) GetLastBGsInfo() {
+func (pl *Mongo) GetLastBGsInfo() []MetaData.BlockGroup {
 	var bgs []MetaData.BlockGroup
 	for i := 0; i < 10; i++ {
 		if pl.Height-i < 0 {
@@ -358,6 +358,7 @@ func (pl *Mongo) GetLastBGsInfo() {
 			}
 		}
 	}
+	return bgs
 }
 
 func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup {

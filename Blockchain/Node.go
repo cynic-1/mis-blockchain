@@ -345,26 +345,44 @@ func (node *Node) LoadBlockChain() {
 		}
 	}
 
-	if node.mongo.HasTransactionAnalysis() {
-		talist := node.mongo.GetTransactionAnalysisFromDatabase()
-		fmt.Println("_______talist", talist)
-		node.TxsAmount = talist.TxsNum
-		node.BCStatus.Overview.PreTransactionNum = talist.PreTxsNum
-		for i := 0; i < len(talist.TxsList); i++ {
-			node.BCStatus.TxsNumList.PushBack(talist.TxsList[i])
+	if node.mongo.HasTransactionList() {
+		list := node.mongo.GetTransactionListFromDatabase()
+		common.Logger.Info("tx_list: ", list)
+		for i := 0; i < len(list); i++ {
+			node.BCStatus.TxsList.PushBack(list[i])
 		}
 	} else {
-		if node.BCStatus.TxsNumList.Len() < 15 {
+		if node.BCStatus.TxsList.Len() < 10 {
 			node.BCStatus.Mutex.Lock()
 			for {
-				node.BCStatus.TxsNumList.PushBack(uint64(0))
-				if node.BCStatus.TxsNumList.Len() == 15 {
+				node.BCStatus.TxsList.PushBack(nil)
+				if node.BCStatus.TxsList.Len() == 10 {
 					node.BCStatus.Mutex.Unlock()
 					break
 				}
 			}
 		}
 	}
+
+	bgs := node.mongo.GetLastBGsInfo()
+	if len(bgs) > 0 {
+		common.Logger.Info("bgs: ", bgs)
+		for i := 0; i < len(bgs); i++ {
+			node.BCStatus.BgsList.PushBack(bgs[i])
+		}
+	} else {
+		if node.BCStatus.BgsList.Len() < 10 {
+			node.BCStatus.Mutex.Lock()
+			for {
+				node.BCStatus.BgsList.PushBack(nil)
+				if node.BCStatus.BgsList.Len() == 10 {
+					node.BCStatus.Mutex.Unlock()
+					break
+				}
+			}
+		}
+	}
+
 }
 
 func (node *Node) Start() {
@@ -375,22 +393,22 @@ func (node *Node) Start() {
 	if !node.config.OpenOtherNodeServe {
 		if node.config.MyAddress.Port == 5010 {
 			go node.network.StartFEServer()
-			go node.network.StartVPNMGMTServer()
-			go node.network.StartVPNFEServer()
+			//go node.network.StartVPNMGMTServer()
+			//go node.network.StartVPNFEServer()
 			go node.network.StartCRSServer()
-			go node.StartUploadUserLogServer()
+			//go node.StartUploadUserLogServer()
 			go node.StartUploadCRSRecordServer()
 			//go node.network.StartFEServer()
 		}
 	} else if node.config.OpenOtherNodeServe {
 		go node.network.StartFEServer()
-		go node.network.StartVPNMGMTServer()
-		go node.network.StartVPNFEServer()
+		//go node.network.StartVPNMGMTServer()
+		//go node.network.StartVPNFEServer()
 		go node.network.StartCRSServer()
-		go node.StartUploadUserLogServer()
+		//go node.StartUploadUserLogServer()
 		go node.StartUploadCRSRecordServer()
 	}
-	go node.StartLogsAnalysisServer()
+	//go node.StartLogsAnalysisServer()
 	go node.StartTransactionAnalysisServer()
 	if node.config.OpenRPCServe {
 		go node.StartRPCServer()

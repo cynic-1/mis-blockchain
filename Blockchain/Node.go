@@ -333,11 +333,11 @@ func (node *Node) LoadBlockChain() {
 			node.BCStatus.TxsNumList.PushBack(talist.TxsList[i])
 		}
 	} else {
-		if node.BCStatus.TxsNumList.Len() < 15 {
+		if node.BCStatus.TxsNumList.Len() < 10 {
 			node.BCStatus.Mutex.Lock()
 			for {
 				node.BCStatus.TxsNumList.PushBack(uint64(0))
-				if node.BCStatus.TxsNumList.Len() == 15 {
+				if node.BCStatus.TxsNumList.Len() == 10 {
 					node.BCStatus.Mutex.Unlock()
 					break
 				}
@@ -365,8 +365,8 @@ func (node *Node) LoadBlockChain() {
 	}
 
 	bgs := node.mongo.GetLastBGsInfo()
+	common.Logger.Info("bgs: ", bgs)
 	if len(bgs) > 0 {
-		common.Logger.Info("bgs: ", bgs)
 		for i := 0; i < len(bgs); i++ {
 			node.BCStatus.BgsList.PushBack(bgs[i])
 		}
@@ -456,6 +456,7 @@ func (node *Node) StartTransactionAnalysisServer() error {
 		node.BCStatus.TxsNumList.Back().Value = node.BCStatus.Overview.TransactionNum - node.BCStatus.Overview.PreTransactionNum
 		node.BCStatus.TxsNumList.PushBack(uint64(0))
 		node.BCStatus.TxsNumList.Remove(node.BCStatus.TxsNumList.Front())
+		node.BCStatus.Overview.PreTransactionNum = node.BCStatus.Overview.TransactionNum
 		var ta MetaData.TransactionAnalysis
 
 		for i := node.BCStatus.TxsNumList.Front(); i != nil; i = i.Next() {

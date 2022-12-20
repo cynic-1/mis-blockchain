@@ -14,6 +14,14 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 		node.dutyWorkerNumber = bg.NextDutyWorker
 		node.StartTime = bg.Timestamp
 
+		node.BCStatus.Mutex.Lock()
+		node.BCStatus.BgsList.PushBack(*bg)
+		if node.BCStatus.BgsList.Len() > 10 {
+			i1 := node.BCStatus.BgsList.Front()
+			node.BCStatus.BgsList.Remove(i1)
+		}
+		node.BCStatus.Mutex.Unlock()
+
 		for i, eachBlock := range bg.Blocks {
 			if len(bg.VoteResult) <= i {
 				continue
@@ -40,14 +48,6 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 
 			node.BCStatus.Mutex.Lock()
 
-			tmp := *bg
-			trans := &tmp
-			node.BCStatus.BgsList.PushBack(trans)
-			if node.BCStatus.BgsList.Len() > 10 {
-				i1 := node.BCStatus.BgsList.Front()
-				node.BCStatus.BgsList.Remove(i1)
-			}
-
 			if bg.Height > 0 {
 				node.BCStatus.Overview.Height = int64(bg.Height)
 				node.BCStatus.Overview.TransactionNum = node.TxsAmount
@@ -63,22 +63,35 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				ta.PreTxsNum = node.BCStatus.Overview.PreTransactionNum
 				common.Logger.Info("overview info: ", node.BCStatus.Overview, "\ttransactionanalysis:", ta)
 
-				//var cr []MetaData.CrsChainRecord
-				//for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
-				//	cr = append(cr, j.Value.(MetaData.CrsChainRecord))
-				//}
-				//
-				//var bgs []MetaData.BlockGroup
-				//for j := node.BCStatus.BgsList.Front(); j != nil; j = j.Next() {
-				//	bgs = append(bgs, j.Value.(MetaData.BlockGroup))
-				//}
-				//common.Logger.Info("bg list: ", bg, "\ttransaction list:", cr)
+				var cr []MetaData.CrsChainRecord
+				for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
+					if j.Value != nil {
+						cr = append(cr, *(j.Value.(*MetaData.CrsChainRecord)))
+					} else {
+						cr = append(cr, MetaData.CrsChainRecord{})
+					}
+				}
+
+				var heights []int
+				var bgs []MetaData.BlockGroup
+				for j := node.BCStatus.BgsList.Front(); j != nil; j = j.Next() {
+					if j.Value != nil {
+						bgs = append(bgs, *(j.Value.(*MetaData.BlockGroup)))
+						heights = append(heights, (j.Value.(*MetaData.BlockGroup)).Height)
+					} else {
+						bgs = append(bgs, MetaData.BlockGroup{})
+					}
+				}
+				common.Logger.Info("bg list: ", heights)
+				common.Logger.Info("transaction list:", cr)
 
 				node.mongo.SaveTransactionAnalysisToDatabase(ta)
 
 				var tlist []MetaData.CrsChainRecord
 				for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
-					tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
+					if j.Value != nil {
+						tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
+					}
 				}
 				node.mongo.SaveTransactionListToDatabase(tlist)
 			}

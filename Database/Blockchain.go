@@ -308,12 +308,12 @@ func (pl *Mongo) GetBlockFromDatabase(height int) MetaData.BlockGroup {
 }
 
 func (pl *Mongo) GetLastBGsInfo() []MetaData.BlockGroup {
-	var bgs []MetaData.BlockGroup
+	bgs := make([]MetaData.BlockGroup, 10)
 	for i := 0; i < 10; i++ {
 		if pl.Height-i < 0 {
 			break
 		}
-		bgs[i] = pl.GetBlockFromDatabase(pl.Height - i)
+		bgs[i] = pl.GetBlockFromDatabase(pl.Height - 9 + i)
 
 		if bgs[i].Height > 0 {
 			for x, eachBlock := range bgs[i].Blocks {

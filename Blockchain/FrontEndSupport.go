@@ -368,7 +368,7 @@ func (node *Node) HandleFrontEndMessage(data []byte, conn net.Conn) {
 	} else if res["Type"] == "userlog" { // 用户日志类型操作
 		switch res["Command"] {
 		//case "GetAllLogByIdentity":
-		//	node.GetAllLogByIdentity(res, conn)
+		//	node.GetAllLogByIdentty(res, conn)
 		//case "GetAllLogByTimestamp":
 		//	node.GetAllLogByTimestamp(res, conn)
 		//case "GetPageLogByIdentity":

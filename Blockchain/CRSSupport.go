@@ -148,7 +148,7 @@ func (node *Node) getBGMsgOfCertainHeightFromServer(c *gin.Context) {
 }
 
 type feRequest struct {
-	height int
+	Height int `msg:"height"`
 }
 
 func (node *Node) sendBGMsgOfCertainHeightToFrontend(c *gin.Context) {
@@ -160,8 +160,8 @@ func (node *Node) sendBGMsgOfCertainHeightToFrontend(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 	}
 
-	common.Logger.Info("MISGetBlockGroup", res.height)
-	bg := node.mongo.GetBlockFromDatabase(res.height)
+	common.Logger.Info("MISGetBlockGroup", res.Height)
+	bg := node.mongo.GetBlockFromDatabase(res.Height)
 
 	if bg.Height > 0 {
 		for x, eachBlock := range bg.Blocks {

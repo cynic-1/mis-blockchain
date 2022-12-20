@@ -76,8 +76,8 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				var bgs []MetaData.BlockGroup
 				for j := node.BCStatus.BgsList.Front(); j != nil; j = j.Next() {
 					if j.Value != nil {
-						bgs = append(bgs, *(j.Value.(*MetaData.BlockGroup)))
-						heights = append(heights, (j.Value.(*MetaData.BlockGroup)).Height)
+						bgs = append(bgs, j.Value.(MetaData.BlockGroup))
+						heights = append(heights, (j.Value.(MetaData.BlockGroup)).Height)
 					} else {
 						bgs = append(bgs, MetaData.BlockGroup{})
 					}
@@ -93,7 +93,7 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 						tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
 					}
 				}
-				node.mongo.SaveTransactionListToDatabase(tlist)
+				//node.mongo.SaveTransactionListToDatabase(tlist)
 			}
 			node.BCStatus.Mutex.Unlock()
 		}
@@ -234,8 +234,8 @@ func (node *Node) UpdateCRSRecordVariables(transactionInterface MetaData.Transac
 	if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
 		node.BCStatus.Mutex.Lock()
 		tmp := *transaction
-		trans := &tmp
-		node.BCStatus.TxsList.PushBack(trans)
+		//trans := &tmp
+		node.BCStatus.TxsList.PushBack(tmp)
 		if node.BCStatus.TxsList.Len() > 10 {
 			i1 := node.BCStatus.TxsList.Front()
 			node.BCStatus.TxsList.Remove(i1)

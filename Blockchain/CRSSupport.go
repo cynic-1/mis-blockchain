@@ -54,6 +54,34 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getLastBGsInfo", node.getLastBlocksInfoforCRS)
 	// 获取最近的多个交易信息
 	v.GET("getLastTransactionsInfo", node.getLastTransactionsInfoforCRS)
+
+	// 日志测试
+	v.GET("getAllNormalLogsByTimestamp", node.getAllNormalLogsByTimestampforCRS)
+	v.GET("getPageNormalLogsByTimestamp", node.getPageNormalLogsByTimestampforCRS)
+	v.GET("getAllWarningLogsByTimestamp", node.getAllWarningLogsByTimestampforCRS)
+	v.GET("getPageWarningLogsByTimestamp", node.GetPageWarningLogsByTimestampforCRS)
+	v.GET("getNumAndListByYearOfNormal", node.GetNumAndListByYearOfNormalforCRS)
+	v.GET("getNumAndListByYearOfWarning", node.GetNumAndListByYearOfWarningforCRS)
+	v.GET("getNumAndListByMonthOfNormal", node.GetNumAndListByMonthOfNormalforCRS)
+	v.GET("getNumAndListByMonthOfWarning", node.GetNumAndListByMonthOfWarningforCRS)
+	v.GET("getNumAndListByDayOfNormal", node.GetNumAndListByDayOfNormalforCRS)
+	v.GET("getNumAndListByDayOfWarning", node.GetNumAndListByDayOfWarningforCRS)
+	v.GET("getNormalLogsAnalysis", node.GetNormalLogsAnalysisforCRS)
+	v.GET("getWarningLogsAnalysis", node.GetWarningLogsAnalysisforCRS)
+
+	// 身份测试
+	v.GET("getAllIdentityAllInf", node.GetAllIdentityAllInfforCRS)
+	v.GET("getAllIdentityAllInfByPage", node.GetAllIdentityAllInfByPageforCRS)
+	v.GET("getAllPendingIdentity", node.GetAllPendingIdentityforCRS)
+	v.GET("getAllPendingIdentityByPage", node.GetAllPendingIdentityByPageforCRS)
+	v.GET("getAllCheckedIdentity", node.GetAllCheckedIdentityforCRS)
+	v.GET("getAllCheckedIdentityByPage", node.GetAllCheckedIdentityByPageforCRS)
+	v.GET("getNumOfIdentityByStatus", node.GetNumOfIdentityByStatusforCRS)
+	v.GET("getAllActionsByIdentityIdentifierAndPage", node.GetAllActionsByIdentityIdentifierAndPageforCRS)
+	v.GET("getAllActionsByIdentityIdentifier", node.GetAllActionsByIdentityIdentifierforCRS)
+	v.GET("getAllWithoutCertIdentityByPage", node.GetAllWithoutCertIdentityByPageforCRS)
+	v.GET("getAllAbledIdentityByPage", node.GetAllAbledIdentityByPageforCRS)
+	v.GET("getAllDisabledIdentityByPage", node.GetAllDisabledIdentityByPageforCRS)
 }
 
 func (node *Node) ping(c *gin.Context) {
@@ -358,8 +386,8 @@ func (node *Node) getStatusAbnormalList(c *gin.Context) {
 }
 
 type BlockInfRequest struct {
-	pageSize int
-	pageNum  int
+	PageSize int `msg:"PageSize"`
+	PageNum  int `msg:"PageNum"`
 }
 
 // GetBlockInfByPage 按页获取区块的所有信息
@@ -386,8 +414,8 @@ func (node *Node) getBlockInfByPage(c *gin.Context) {
 	//	Network.SendResponse(conn, data, res["Key"].(string))
 	//	return
 	//}
-	pageSize := res.pageSize
-	pageNum := res.pageNum
+	pageSize := res.PageSize
+	pageNum := res.PageNum
 	skip := pageSize * (pageNum - 1)
 
 	bgs := node.mongo.GetPageBlockFromDatabase(skip, pageSize)
@@ -431,9 +459,10 @@ func (node *Node) getBlockInfByPage(c *gin.Context) {
 		}
 	}
 
+	common.Logger.Info("分页获取区块组信息：", bgs)
 	var message PageBlockGroupInf
 
-	message.blockgroups = bgs
+	message.Blockgroups = bgs
 	message.Total = len(bgs)
 
 	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
@@ -490,4 +519,475 @@ func (node *Node) getLastTransactionsInfoforCRS(c *gin.Context) {
 	node.BCStatus.Mutex.RUnlock()
 
 	c.JSON(http.StatusOK, gin.H{"error": nil, "data": txs})
+}
+
+type timestampRequest struct {
+	BeginTime          string `msg:"BeginTime"`
+	EndTime            string `msg:"EndTime"`
+	PageSize           int    `msg:"PageSize"`
+	PageNo             int    `msg:"PageNo"`
+	IdentityIdentifier string `msg:"IdentityIdentifier"`
+}
+
+func (node *Node) getAllNormalLogsByTimestampforCRS(c *gin.Context) {
+	res := timestampRequest{}
+
+	start := res.BeginTime
+	end := res.EndTime
+	logs := node.mongo.GetNormalLogsByTimestampFromDatabase(start, end)
+	total := node.mongo.GetNormalLogsCountByTimestampFromDatabase(start, end)
+
+	logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata})
+}
+
+func (node *Node) getPageNormalLogsByTimestampforCRS(c *gin.Context) {
+	res := timestampRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	if res.IdentityIdentifier == "" {
+		pageSize := res.PageSize
+		pageNum := res.PageNo
+		skip := pageSize * (pageNum - 1)
+		start := res.BeginTime
+		end := res.EndTime
+
+		logs := node.mongo.GetPageNormalLogsByTimestampFromDatabase(start, end, skip, pageSize)
+		total := node.mongo.GetPageNormalLogsCountByTimestampFromDatabase(start, end)
+
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata})
+	} else if res.IdentityIdentifier != "" {
+		pageSize := res.PageSize
+		pageNum := res.PageNo
+		skip := pageSize * (pageNum - 1)
+		start := res.BeginTime
+		end := res.EndTime
+
+		logs := node.mongo.GetPageNormalLogsByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier, skip, pageSize)
+		total := node.mongo.GetPageNormalLogsCountByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier)
+
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata})
+	}
+}
+
+func (node *Node) getAllWarningLogsByTimestampforCRS(c *gin.Context) {
+	res := timestampRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+
+	start := res.BeginTime
+	end := res.EndTime
+	logs := node.mongo.GetAllWarningLogsByTimestampFromDatabase(start, end)
+	total := node.mongo.GetAllWarningLogsCountByTimestampFromDatabase(start, end)
+
+	logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata})
+}
+
+func (node *Node) GetPageWarningLogsByTimestampforCRS(c *gin.Context) {
+	res := timestampRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	if res.IdentityIdentifier == "" {
+		pageSize := res.PageSize
+		pageNum := res.PageNo
+		skip := pageSize * (pageNum - 1)
+		start := res.BeginTime
+		end := res.EndTime
+
+		logs := node.mongo.GetPageWarningLogsByTimestampFromDatabase(start, end, skip, pageSize)
+		total := node.mongo.GetPageWarningLogsCountByTimestampFromDatabase(start, end)
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有告警日志成功"})
+	} else if res.IdentityIdentifier != "" {
+		pageSize := res.PageSize
+		pageNum := res.PageNo
+		skip := pageSize * (pageNum - 1)
+		start := res.BeginTime
+		end := res.EndTime
+
+		logs := node.mongo.GetPageWarningLogsByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier, skip, pageSize)
+		total := node.mongo.GetPageWarningLogsCountByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier)
+
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有告警日志成功"})
+	}
+}
+
+func (node *Node) GetNumAndListByYearOfNormalforCRS(c *gin.Context) {
+	analysis := node.mongo.GetNormalLogsAnalysisFromDatabaseByYear()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一年内每个月的正常日志数量和列表成功"})
+}
+
+func (node *Node) GetNumAndListByYearOfWarningforCRS(c *gin.Context) {
+	analysis := node.mongo.GetWarningLogsAnalysisFromDatabaseByYear()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一年内每个月的告警日志数量和列表成功"})
+}
+
+func (node *Node) GetNumAndListByMonthOfNormalforCRS(c *gin.Context) {
+	analysis := node.mongo.GetNormalLogsAnalysisFromDatabaseByMonth()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一月内每天的正常日志数量和列表成功"})
+}
+
+func (node *Node) GetNumAndListByMonthOfWarningforCRS(c *gin.Context) {
+	analysis := node.mongo.GetWarningLogsAnalysisFromDatabaseByMonth()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一月内每天的告警日志数量和列表成功"})
+}
+
+func (node *Node) GetNumAndListByDayOfNormalforCRS(c *gin.Context) {
+	analysis := node.mongo.GetNormalLogsAnalysisFromDatabaseByDay()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一天内每小时的正常日志数量和列表成功"})
+}
+
+func (node *Node) GetNumAndListByDayOfWarningforCRS(c *gin.Context) {
+	analysis := node.mongo.GetWarningLogsAnalysisFromDatabaseByDay()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取近一天内每小时的告警日志数量和列表成功"})
+}
+
+type AnalysisRequest struct {
+	BeginTime string `msg:"BeginTime"`
+	EndTime   string `msg:"EndTime"`
+	Num       int    `msg:"Num"`
+}
+
+func (node *Node) GetNormalLogsAnalysisforCRS(c *gin.Context) {
+	res := AnalysisRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	start := res.BeginTime
+	end := res.EndTime
+	dur := res.Num
+
+	var analysis []int
+	analysis = node.mongo.GetNormalLogsAnalysisFromDatabaseDaysOrMonth(start, end, dur)
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取时段内正常日志分析成功"})
+}
+
+func (node *Node) GetWarningLogsAnalysisforCRS(c *gin.Context) {
+	res := AnalysisRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	start := res.BeginTime
+	end := res.EndTime
+	dur := res.Num
+
+	var analysis []int
+	analysis = node.mongo.GetWarningLogsAnalysisFromDatabaseDaysOrMonth(start, end, dur)
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": analysis, "message": "获取时段内告警日志分析成功"})
+}
+
+func (node *Node) GetAllIdentityAllInfforCRS(c *gin.Context) {
+	identities := node.mongo.GetAllIdentityFromDatabase()
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": identities})
+}
+
+type IdentityRequest struct {
+	PageSize int `msg:"PageSize"`
+	PageNum  int `msg:"PageNum"`
+}
+
+// GetAllIdentityAllInfByPage 按页获取身份的所有信息
+//
+// @Description: 按页获取身份的所有信息
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllIdentityAllInfByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPageIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// GetAllPendingIdentity 获取所有待审核的身份
+//
+// @Description: 获取所有待审核的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllPendingIdentityforCRS(c *gin.Context) {
+	identities := node.mongo.GetPendingIdentityFromDatabase()
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": identities})
+}
+
+// GetAllPendingIdentityByPage 按页获取所有待审核的身份
+//
+// @Description: 按页获取所有待审核的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllPendingIdentityByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPagePendingIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetPendingIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// GetAllCheckedIdentity 获取所有已审核的身份
+//
+// @Description: 获取所有已审核的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllCheckedIdentityforCRS(c *gin.Context) {
+	identities := node.mongo.GetCheckedIdentityCountFromDatabase()
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": identities})
+}
+
+// GetAllPendingIdentityByPage 按页获取所有待审核的身份
+//
+// @Description: 按页获取所有待审核的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllCheckedIdentityByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPageCheckedIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetCheckedIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// GetAllDisabledIdentityByPage 按页获取所有禁用的身份
+//
+// @Description: 按页获取所有禁用的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllDisabledIdentityByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPageDisabledIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetDisabledIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// GetAllAbledIdentity 按页获取所有正常的身份
+//
+// @Description: 按页获取所有正常的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllAbledIdentityByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPageAbledIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetAbledIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// GetAllWithoutCertIdentityByPage 按页获取所有没有证书的身份
+//
+// @Description: 按页获取所有没有证书的身份
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllWithoutCertIdentityByPageforCRS(c *gin.Context) {
+	res := IdentityRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+	pageSize := res.PageSize
+	pageNum := res.PageNum
+	skip := pageSize * (pageNum - 1)
+
+	identities := node.mongo.GetPageWithoutCertIdentityFromDatabase(skip, pageSize)
+
+	var message PageIdentityInf
+	message.Identities = identities
+	message.Total = node.mongo.GetWithoutCertIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+type IdentifierRequest struct {
+	PageSize           int    `msg:"PageSize"`
+	PageNum            int    `msg:"PageNum"`
+	IdentityIdentifier string `msg:"IdentityIdentifier"`
+}
+
+// GetAllActionsByIdentityIdentifier 获得某个用户的历史行为信息
+//
+// @Description: 获得某个用户的历史行为信息
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllActionsByIdentityIdentifierforCRS(c *gin.Context) {
+	res := IdentifierRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+
+	if !node.mongo.HasIdentityData("identityidentifier", res.IdentityIdentifier) {
+		c.JSON(http.StatusNotFound, gin.H{"error": nil, "data": MetaData.Identity{}, "message": "不存在该身份"})
+	} else {
+		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", res.IdentityIdentifier)
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": identity.ModifyRecords, "message": "成功获得该身份行为信息"})
+	}
+}
+
+// GetAllActionsByIdentityIdentifierAndPage 获得某个用户的分页历史行为信息
+//
+// @Description: 获得某个用户的分页历史行为信息
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetAllActionsByIdentityIdentifierAndPageforCRS(c *gin.Context) {
+	res := IdentifierRequest{}
+
+	err := c.BindJSON(&res)
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
+
+	var data IdentityActionsResponse
+	if !node.mongo.HasIdentityData("identityidentifier", res.IdentityIdentifier) {
+		c.JSON(http.StatusNotFound, gin.H{"error": nil, "data": MetaData.Identity{}, "message": "不存在该身份"})
+	} else {
+		pageSize := res.PageSize
+		pageNum := res.PageNum
+		skip := pageSize * (pageNum - 1)
+
+		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", res.IdentityIdentifier)
+		l := len(identity.ModifyRecords)
+		data.Total = l
+		if skip >= l {
+			c.JSON(http.StatusBadRequest, gin.H{"error": nil, "data": nil, "message": "超出长度范围"})
+		} else if l-skip < pageSize {
+			data.Records = identity.ModifyRecords[skip:]
+			c.JSON(http.StatusOK, gin.H{"error": nil, "data": data, "message": "成功获得该身份行为信息"})
+		} else {
+			data.Records = identity.ModifyRecords[skip : skip+pageSize]
+			c.JSON(http.StatusOK, gin.H{"error": nil, "data": data, "message": "成功获得该身份行为信息"})
+		}
+	}
+}
+
+// GetNumOfIdentityByStatus 获取禁用、正常、待审核、撤销证书身份数量
+//
+// @Description: 获取禁用、正常、待审核、撤销证书身份数量
+// @receiver node
+// @param res
+// @param conn
+func (node *Node) GetNumOfIdentityByStatusforCRS(c *gin.Context) {
+	var m NumOfIdentity
+	m.Valid = node.mongo.GetAbledIdentityCountFromDatabase()
+	m.InValid = node.mongo.GetDisabledIdentityCountFromDatabase()
+	m.Pending = node.mongo.GetPendingIdentityCountFromDatabase()
+	m.WithoutCert = node.mongo.GetWithoutCertIdentityCountFromDatabase()
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": m, "message": "获取禁用、正常、待审核、撤销证书身份数量"})
 }

@@ -71,7 +71,7 @@ type PageIdentityInf struct {
 //  1. 区块链后台给管理员前端的回复的分页身份信息
 //
 type PageBlockGroupInf struct {
-	blockgroups []MetaData.BlockGroup
+	Blockgroups []MetaData.BlockGroup
 	Total       int
 }
 
@@ -3700,7 +3700,7 @@ func (node *Node) GetBlockInfByPage(res map[string]interface{}, conn net.Conn) {
 	var response CommonResponse
 	var message PageBlockGroupInf
 
-	message.blockgroups = bgs
+	message.Blockgroups = bgs
 	message.Total = len(bgs)
 
 	response.Code = code.SUCCESS

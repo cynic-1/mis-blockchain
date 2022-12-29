@@ -180,16 +180,11 @@ type feRequest struct {
 }
 
 func (node *Node) sendBGMsgOfCertainHeightToFrontend(c *gin.Context) {
-	res := feRequest{}
-
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	height, error := strconv.Atoi(c.Query("height"))
+	if error != nil {
+		panic(error)
 	}
-
-	common.Logger.Info("MISGetBlockGroup", res.Height)
-	bg := node.mongo.GetBlockFromDatabase(res.Height)
+	bg := node.mongo.GetBlockFromDatabase(height)
 
 	if bg.Height > 0 {
 		for x, eachBlock := range bg.Blocks {
@@ -398,13 +393,13 @@ type BlockInfRequest struct {
 // @param conn
 //
 func (node *Node) getBlockInfByPage(c *gin.Context) {
-	res := BlockInfRequest{}
+	//res := BlockInfRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	}
+	// err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
 	//if res["PageSize"] == nil || res["PageNum"] == nil {
 	//	resp := CommonResponse{Code: code.LESS_PARAMETER, Message: "缺少字段", Data: nil}
 	//	data, err := json.Marshal(resp)
@@ -414,8 +409,14 @@ func (node *Node) getBlockInfByPage(c *gin.Context) {
 	//	Network.SendResponse(conn, data, res["Key"].(string))
 	//	return
 	//}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
+	}
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	bgs := node.mongo.GetPageBlockFromDatabase(skip, pageSize)
@@ -530,10 +531,10 @@ type timestampRequest struct {
 }
 
 func (node *Node) getAllNormalLogsByTimestampforCRS(c *gin.Context) {
-	res := timestampRequest{}
+	//res := timestampRequest{}
 
-	start := res.BeginTime
-	end := res.EndTime
+	start := c.Query("BeginTime")
+	end := c.Query("EndTime")
 	logs := node.mongo.GetNormalLogsByTimestampFromDatabase(start, end)
 	total := node.mongo.GetNormalLogsCountByTimestampFromDatabase(start, end)
 
@@ -543,19 +544,19 @@ func (node *Node) getAllNormalLogsByTimestampforCRS(c *gin.Context) {
 }
 
 func (node *Node) getPageNormalLogsByTimestampforCRS(c *gin.Context) {
-	res := timestampRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	}
-	if res.IdentityIdentifier == "" {
-		pageSize := res.PageSize
-		pageNum := res.PageNo
+	if c.Query("IdentityIdentifier") == "" {
+		pageSize, error := strconv.Atoi(c.Query("PageSize"))
+		if error != nil {
+			panic(error)
+		}
+		pageNum, error := strconv.Atoi(c.Query("PageNo"))
+		if error != nil {
+			panic(error)
+		}
 		skip := pageSize * (pageNum - 1)
-		start := res.BeginTime
-		end := res.EndTime
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
 
 		logs := node.mongo.GetPageNormalLogsByTimestampFromDatabase(start, end, skip, pageSize)
 		total := node.mongo.GetPageNormalLogsCountByTimestampFromDatabase(start, end)
@@ -563,15 +564,21 @@ func (node *Node) getPageNormalLogsByTimestampforCRS(c *gin.Context) {
 		logdata := PageUserlogRespond{Logs: logs, Count: total}
 
 		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata})
-	} else if res.IdentityIdentifier != "" {
-		pageSize := res.PageSize
-		pageNum := res.PageNo
+	} else if c.Query("IdentityIdentifier") != "" {
+		pageSize, error := strconv.Atoi(c.Query("PageSize"))
+		if error != nil {
+			panic(error)
+		}
+		pageNum, error := strconv.Atoi(c.Query("PageNo"))
+		if error != nil {
+			panic(error)
+		}
 		skip := pageSize * (pageNum - 1)
-		start := res.BeginTime
-		end := res.EndTime
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
 
-		logs := node.mongo.GetPageNormalLogsByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier, skip, pageSize)
-		total := node.mongo.GetPageNormalLogsCountByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier)
+		logs := node.mongo.GetPageNormalLogsByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"), skip, pageSize)
+		total := node.mongo.GetPageNormalLogsCountByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"))
 
 		logdata := PageUserlogRespond{Logs: logs, Count: total}
 
@@ -580,16 +587,16 @@ func (node *Node) getPageNormalLogsByTimestampforCRS(c *gin.Context) {
 }
 
 func (node *Node) getAllWarningLogsByTimestampforCRS(c *gin.Context) {
-	res := timestampRequest{}
+	//res := timestampRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	}
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
 
-	start := res.BeginTime
-	end := res.EndTime
+	start := c.Query("BeginTime")
+	end := c.Query("EndTime")
 	logs := node.mongo.GetAllWarningLogsByTimestampFromDatabase(start, end)
 	total := node.mongo.GetAllWarningLogsCountByTimestampFromDatabase(start, end)
 
@@ -599,34 +606,46 @@ func (node *Node) getAllWarningLogsByTimestampforCRS(c *gin.Context) {
 }
 
 func (node *Node) GetPageWarningLogsByTimestampforCRS(c *gin.Context) {
-	res := timestampRequest{}
+	//res := timestampRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-	if res.IdentityIdentifier == "" {
-		pageSize := res.PageSize
-		pageNum := res.PageNo
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//	return
+	//}
+	if c.Query("IdentityIdentifier") == "" {
+		pageSize, error := strconv.Atoi(c.Query("PageSize"))
+		if error != nil {
+			panic(error)
+		}
+		pageNum, error := strconv.Atoi(c.Query("PageNo"))
+		if error != nil {
+			panic(error)
+		}
 		skip := pageSize * (pageNum - 1)
-		start := res.BeginTime
-		end := res.EndTime
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
 
 		logs := node.mongo.GetPageWarningLogsByTimestampFromDatabase(start, end, skip, pageSize)
 		total := node.mongo.GetPageWarningLogsCountByTimestampFromDatabase(start, end)
 		logdata := PageUserlogRespond{Logs: logs, Count: total}
 		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有告警日志成功"})
-	} else if res.IdentityIdentifier != "" {
-		pageSize := res.PageSize
-		pageNum := res.PageNo
+	} else if c.Query("IdentityIdentifier") != "" {
+		pageSize, error := strconv.Atoi(c.Query("PageSize"))
+		if error != nil {
+			panic(error)
+		}
+		pageNum, error := strconv.Atoi(c.Query("PageNo"))
+		if error != nil {
+			panic(error)
+		}
 		skip := pageSize * (pageNum - 1)
-		start := res.BeginTime
-		end := res.EndTime
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
 
-		logs := node.mongo.GetPageWarningLogsByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier, skip, pageSize)
-		total := node.mongo.GetPageWarningLogsCountByTimestampAndIdentifierFromDatabase(start, end, res.IdentityIdentifier)
+		logs := node.mongo.GetPageWarningLogsByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"), skip, pageSize)
+		total := node.mongo.GetPageWarningLogsCountByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"))
 
 		logdata := PageUserlogRespond{Logs: logs, Count: total}
 
@@ -677,18 +696,20 @@ type AnalysisRequest struct {
 }
 
 func (node *Node) GetNormalLogsAnalysisforCRS(c *gin.Context) {
-	res := AnalysisRequest{}
+	//res := AnalysisRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		return
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//	return
+	//}
+	dur, error := strconv.Atoi(c.Query("Num"))
+	if error != nil {
+		panic(error)
 	}
-
-	start := res.BeginTime
-	end := res.EndTime
-	dur := res.Num
+	start := c.Query("BeginTime")
+	end := c.Query("EndTime")
 
 	var analysis []int
 	analysis = node.mongo.GetNormalLogsAnalysisFromDatabaseDaysOrMonth(start, end, dur)
@@ -697,18 +718,21 @@ func (node *Node) GetNormalLogsAnalysisforCRS(c *gin.Context) {
 }
 
 func (node *Node) GetWarningLogsAnalysisforCRS(c *gin.Context) {
-	res := AnalysisRequest{}
+	//res := AnalysisRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		return
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//	return
+	//}
+
+	dur, error := strconv.Atoi(c.Query("Num"))
+	if error != nil {
+		panic(error)
 	}
-
-	start := res.BeginTime
-	end := res.EndTime
-	dur := res.Num
+	start := c.Query("BeginTime")
+	end := c.Query("EndTime")
 
 	var analysis []int
 	analysis = node.mongo.GetWarningLogsAnalysisFromDatabaseDaysOrMonth(start, end, dur)
@@ -732,15 +756,21 @@ type IdentityRequest struct {
 // @param res
 // @param conn
 func (node *Node) GetAllIdentityAllInfByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPageIdentityFromDatabase(skip, pageSize)
@@ -770,15 +800,21 @@ func (node *Node) GetAllPendingIdentityforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllPendingIdentityByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPagePendingIdentityFromDatabase(skip, pageSize)
@@ -808,15 +844,21 @@ func (node *Node) GetAllCheckedIdentityforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllCheckedIdentityByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPageCheckedIdentityFromDatabase(skip, pageSize)
@@ -835,15 +877,21 @@ func (node *Node) GetAllCheckedIdentityByPageforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllDisabledIdentityByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPageDisabledIdentityFromDatabase(skip, pageSize)
@@ -862,15 +910,21 @@ func (node *Node) GetAllDisabledIdentityByPageforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllAbledIdentityByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPageAbledIdentityFromDatabase(skip, pageSize)
@@ -889,15 +943,21 @@ func (node *Node) GetAllAbledIdentityByPageforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllWithoutCertIdentityByPageforCRS(c *gin.Context) {
-	res := IdentityRequest{}
+	//res := IdentityRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
+	pageSize, error := strconv.Atoi(c.Query("PageSize"))
+	if error != nil {
+		panic(error)
 	}
-	pageSize := res.PageSize
-	pageNum := res.PageNum
+	pageNum, error := strconv.Atoi(c.Query("PageNum"))
+	if error != nil {
+		panic(error)
+	}
 	skip := pageSize * (pageNum - 1)
 
 	identities := node.mongo.GetPageWithoutCertIdentityFromDatabase(skip, pageSize)
@@ -922,18 +982,18 @@ type IdentifierRequest struct {
 // @param res
 // @param conn
 func (node *Node) GetAllActionsByIdentityIdentifierforCRS(c *gin.Context) {
-	res := IdentifierRequest{}
+	//res := IdentifierRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	}
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
 
-	if !node.mongo.HasIdentityData("identityidentifier", res.IdentityIdentifier) {
+	if !node.mongo.HasIdentityData("identityidentifier", c.Query("IdentityIdentifier")) {
 		c.JSON(http.StatusNotFound, gin.H{"error": nil, "data": MetaData.Identity{}, "message": "不存在该身份"})
 	} else {
-		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", res.IdentityIdentifier)
+		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", c.Query("IdentityIdentifier"))
 		c.JSON(http.StatusOK, gin.H{"error": nil, "data": identity.ModifyRecords, "message": "成功获得该身份行为信息"})
 	}
 }
@@ -945,23 +1005,29 @@ func (node *Node) GetAllActionsByIdentityIdentifierforCRS(c *gin.Context) {
 // @param res
 // @param conn
 func (node *Node) GetAllActionsByIdentityIdentifierAndPageforCRS(c *gin.Context) {
-	res := IdentifierRequest{}
+	//res := IdentifierRequest{}
 
-	err := c.BindJSON(&res)
-	if err != nil {
-		common.Logger.Error("解析crs request失败", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	}
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//}
 
 	var data IdentityActionsResponse
-	if !node.mongo.HasIdentityData("identityidentifier", res.IdentityIdentifier) {
+	if !node.mongo.HasIdentityData("identityidentifier", c.Query("IdentityIdentifier")) {
 		c.JSON(http.StatusNotFound, gin.H{"error": nil, "data": MetaData.Identity{}, "message": "不存在该身份"})
 	} else {
-		pageSize := res.PageSize
-		pageNum := res.PageNum
+		pageSize, error := strconv.Atoi(c.Query("PageSize"))
+		if error != nil {
+			panic(error)
+		}
+		pageNum, error := strconv.Atoi(c.Query("PageNum"))
+		if error != nil {
+			panic(error)
+		}
 		skip := pageSize * (pageNum - 1)
 
-		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", res.IdentityIdentifier)
+		identity := node.mongo.GetOneIdentityFromDatabase("identityidentifier", c.Query("IdentityIdentifier"))
 		l := len(identity.ModifyRecords)
 		data.Total = l
 		if skip >= l {

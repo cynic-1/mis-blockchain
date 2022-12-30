@@ -60,6 +60,8 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getPageNormalLogsByTimestamp", node.getPageNormalLogsByTimestampforCRS)
 	v.GET("getAllWarningLogsByTimestamp", node.getAllWarningLogsByTimestampforCRS)
 	v.GET("getPageWarningLogsByTimestamp", node.GetPageWarningLogsByTimestampforCRS)
+	v.GET("getPageLogsByTimestamp", node.GetPageLogsByTimestampforCRS)
+
 	v.GET("getNumAndListByYearOfNormal", node.GetNumAndListByYearOfNormalforCRS)
 	v.GET("getNumAndListByYearOfWarning", node.GetNumAndListByYearOfWarningforCRS)
 	v.GET("getNumAndListByMonthOfNormal", node.GetNumAndListByMonthOfNormalforCRS)
@@ -650,6 +652,54 @@ func (node *Node) GetPageWarningLogsByTimestampforCRS(c *gin.Context) {
 		logdata := PageUserlogRespond{Logs: logs, Count: total}
 
 		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有告警日志成功"})
+	}
+}
+
+func (node *Node) GetPageLogsByTimestampforCRS(c *gin.Context) {
+	//res := timestampRequest{}
+
+	//err := c.BindJSON(&res)
+	//if err != nil {
+	//	common.Logger.Error("解析crs request失败", err.Error())
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	//	return
+	//}
+	if c.Query("IdentityIdentifier") == "" {
+		pageSize, err := strconv.Atoi(c.Query("PageSize"))
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		pageNum, err := strconv.Atoi(c.Query("PageNo"))
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		skip := pageSize * (pageNum - 1)
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
+
+		logs := node.mongo.GetPageLogsByTimestampFromDatabase(start, end, skip, pageSize)
+		total := node.mongo.GetPageLogsCountByTimestampFromDatabase(start, end)
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有日志成功"})
+	} else if c.Query("IdentityIdentifier") != "" {
+		pageSize, err := strconv.Atoi(c.Query("PageSize"))
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		pageNum, err := strconv.Atoi(c.Query("PageNo"))
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		skip := pageSize * (pageNum - 1)
+		start := c.Query("BeginTime")
+		end := c.Query("EndTime")
+
+		logs := node.mongo.GetPageLogsByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"), skip, pageSize)
+		total := node.mongo.GetPageLogsCountByTimestampAndIdentifierFromDatabase(start, end, c.Query("IdentityIdentifier"))
+
+		logdata := PageUserlogRespond{Logs: logs, Count: total}
+
+		c.JSON(http.StatusOK, gin.H{"error": nil, "data": logdata, "message": "按时间分页获取所有日志成功"})
 	}
 }
 

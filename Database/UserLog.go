@@ -22,18 +22,28 @@ import (
 )
 
 func (pl *Mongo) SaveNormalUserLogToDatabase(item MetaData.UserLog) {
-	typ := "UserLog"
-	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
-	subname := index + "-" + typ
+	typ1 := "UserLog"
+	typ2 := "UserLog-All"
 
-	pl.InsertToMogoUserLog(encryptUserLog(item), subname)
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname1 := index + "-" + typ1
+	subname2 := index + "-" + typ2
+
+	pl.InsertToMogoUserLog(encryptUserLog(item), subname1)
+	pl.InsertToMogoUserLog(encryptUserLog(item), subname2)
+
 }
 
 func (pl *Mongo) SaveWarningUserLogToDatabase(item MetaData.UserLog) {
-	typ := "UserLog-Warning"
+	typ1 := "UserLog-Warning"
+	typ2 := "UserLog-All"
+
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
-	subname := index + "-" + typ
-	pl.InsertToMogoUserLog(encryptUserLog(item), subname)
+	subname1 := index + "-" + typ1
+	subname2 := index + "-" + typ2
+
+	pl.InsertToMogoUserLog(encryptUserLog(item), subname1)
+	pl.InsertToMogoUserLog(encryptUserLog(item), subname2)
 }
 
 func (pl *Mongo) GetLogsByIdentityIdentifierFromDatabase(identityidentifier string) []MetaData.UserLog {
@@ -247,6 +257,38 @@ func (pl *Mongo) GetPageWarningLogsByTimestampFromDatabase(start, end string, sk
 func (pl *Mongo) GetPageWarningLogsCountByTimestampFromDatabase(start, end string) int {
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 	subname := index + "-" + "UserLog-Warning"
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var total int
+	c := session.DB("blockchain").C(subname)
+
+	total, err := c.Find(bson.M{"timestamp": bson.M{"$lte": end, "$gte": start}}).Count()
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return total
+}
+
+func (pl *Mongo) GetPageLogsByTimestampFromDatabase(start, end string, skip, limit int) []MetaData.UserLog {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "UserLog-All"
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var items []MetaData.UserLog
+	c := session.DB("blockchain").C(subname)
+
+	err := c.Find(bson.M{"timestamp": bson.M{"$lte": end, "$gte": start}}).Sort("-timestamp").Skip(skip).Limit(limit).All(&items)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return decryptAllUserLog(items)
+}
+
+func (pl *Mongo) GetPageLogsCountByTimestampFromDatabase(start, end string) int {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "UserLog-All"
 	session := pl.pool.AcquireSession()
 	defer session.Release()
 
@@ -670,6 +712,38 @@ func (pl *Mongo) GetPageWarningLogsCountByIdentityAndTimestampFromDatabase(ident
 	c := session.DB("blockchain").C(subname)
 
 	total, err := c.Find(bson.M{"identityidentifier": utils.EncryptString(identityidentifier), "timestamp": bson.M{"$lte": end, "$gte": start}}).Count()
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return total
+}
+
+func (pl *Mongo) GetPageLogsByTimestampAndIdentifierFromDatabase(start, end, id string, skip, limit int) []MetaData.UserLog {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "UserLog-All"
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var items []MetaData.UserLog
+	c := session.DB("blockchain").C(subname)
+
+	err := c.Find(bson.M{"identityidentifier": utils.EncryptString(id), "timestamp": bson.M{"$lte": end, "$gte": start}}).Sort("-timestamp").Skip(skip).Limit(limit).All(&items)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return decryptAllUserLog(items)
+}
+
+func (pl *Mongo) GetPageLogsCountByTimestampAndIdentifierFromDatabase(start, end, id string) int {
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + "UserLog-All"
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var total int
+	c := session.DB("blockchain").C(subname)
+
+	total, err := c.Find(bson.M{"identityidentifier": utils.EncryptString(id), "timestamp": bson.M{"$lte": end, "$gte": start}}).Count()
 	if err != nil {
 		common.Logger.Error(err)
 	}

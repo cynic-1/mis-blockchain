@@ -443,3 +443,86 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 
 	return blockgroup
 }
+
+func (pl *Mongo) GetPageBlockFromDatabaseByTimestamp(skip, limit int, beginTime, endTime float64) []MetaData.BlockGroup {
+	session := pl.pool.AcquireSession()
+	//session.SetMode(mgo.Monotonic, true)
+	defer session.Release()
+
+	blockgroup := make([]MetaData.BlockGroup, limit)
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+
+	first := (skip + 1) % 100000
+	last := (skip + limit) % 100000
+
+	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+
+	if 99990 <= first && first < 100000 && 0 <= last && last < 10 {
+		err := c1.Find(bson.M{"timestamp": bson.M{"$lte": endTime, "$gte": beginTime}}).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		blockgroup1 := make([]MetaData.BlockGroup, limit-len(blockgroup))
+
+		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		err = c2.Find(bson.M{"timestamp": bson.M{"$lte": endTime, "$gte": beginTime}}).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup1)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+		for _, bg := range blockgroup {
+			var blocks []MetaData.Block
+			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+		}
+
+		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		for _, bg := range blockgroup1 {
+			var blocks []MetaData.Block
+			err = c4.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+			blockgroup = append(blockgroup, bg)
+		}
+
+	} else {
+		err := c1.Find(bson.M{"timestamp": bson.M{"$lte": endTime, "$gte": beginTime}}).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		for _, bg := range blockgroup {
+			var blocks []MetaData.Block
+			c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(bg.Height/(10*10000)))
+			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
+			if err != nil {
+				common.Logger.Error(err)
+			}
+
+			true_blocks := make([]MetaData.Block, len(bg.CheckHeader))
+			for _, v := range blocks {
+				true_blocks[v.BlockNum] = v
+			}
+			bg.Blocks = true_blocks
+		}
+	}
+
+	return blockgroup
+}

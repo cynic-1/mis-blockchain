@@ -383,8 +383,10 @@ func (node *Node) getStatusAbnormalList(c *gin.Context) {
 }
 
 type BlockInfRequest struct {
-	PageSize int `msg:"PageSize"`
-	PageNum  int `msg:"PageNum"`
+	BeginTime string `msg:"BeginTime"`
+	EndTime   string `msg:"EndTime"`
+	PageSize  int    `msg:"PageSize"`
+	PageNum   int    `msg:"PageNum"`
 }
 
 // GetBlockInfByPage 按页获取区块的所有信息
@@ -411,17 +413,35 @@ func (node *Node) getBlockInfByPage(c *gin.Context) {
 	//	Network.SendResponse(conn, data, res["Key"].(string))
 	//	return
 	//}
-	pageSize, error := strconv.Atoi(c.Query("PageSize"))
-	if error != nil {
-		panic(error)
+	pageSize, err := strconv.Atoi(c.Query("PageSize"))
+	if err != nil {
+		common.Logger.Error(err)
 	}
-	pageNum, error := strconv.Atoi(c.Query("PageNum"))
-	if error != nil {
-		panic(error)
+	pageNum, err := strconv.Atoi(c.Query("PageNum"))
+	if err != nil {
+		common.Logger.Error(err)
 	}
+
+	beginTime := c.Query("BeginTime")
+	endTime := c.Query("EndTime")
+
+	var bgs []MetaData.BlockGroup
 	skip := pageSize * (pageNum - 1)
 
-	bgs := node.mongo.GetPageBlockFromDatabase(skip, pageSize)
+	if beginTime == "" {
+		bgs = node.mongo.GetPageBlockFromDatabase(skip, pageSize)
+	} else {
+		begin, err := strconv.ParseFloat(beginTime, 64)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		end, err := strconv.ParseFloat(endTime, 64)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		bgs = node.mongo.GetPageBlockFromDatabaseByTimestamp(skip, pageSize, begin, end)
+	}
 
 	for _, bg := range bgs {
 		if bg.Height > 0 {

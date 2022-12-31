@@ -3,6 +3,7 @@ package Node
 import (
 	"MIS-BC/MetaData"
 	"MIS-BC/common"
+	"MIS-BC/security/code"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -56,12 +57,12 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getLastTransactionsInfo", node.getLastTransactionsInfoforCRS)
 
 	// 日志测试
+	v.POST("uploadLog", node.uploadLogforCRS)
 	v.GET("getAllNormalLogsByTimestamp", node.getAllNormalLogsByTimestampforCRS)
 	v.GET("getPageNormalLogsByTimestamp", node.getPageNormalLogsByTimestampforCRS)
 	v.GET("getAllWarningLogsByTimestamp", node.getAllWarningLogsByTimestampforCRS)
 	v.GET("getPageWarningLogsByTimestamp", node.GetPageWarningLogsByTimestampforCRS)
 	v.GET("getPageLogsByTimestamp", node.GetPageLogsByTimestampforCRS)
-
 	v.GET("getNumAndListByYearOfNormal", node.GetNumAndListByYearOfNormalforCRS)
 	v.GET("getNumAndListByYearOfWarning", node.GetNumAndListByYearOfWarningforCRS)
 	v.GET("getNumAndListByMonthOfNormal", node.GetNumAndListByMonthOfNormalforCRS)
@@ -84,6 +85,72 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getAllWithoutCertIdentityByPage", node.GetAllWithoutCertIdentityByPageforCRS)
 	v.GET("getAllAbledIdentityByPage", node.GetAllAbledIdentityByPageforCRS)
 	v.GET("getAllDisabledIdentityByPage", node.GetAllDisabledIdentityByPageforCRS)
+}
+
+/**
+* @Author: 包哲铭
+* @Description: 写入日志
+* @Date: 2022/12/31
+* @Copyright: 国家重大科技基础设施——未来网络北大实验室 & 佛山赛思禅科技有限公司
+ */
+func (node *Node) uploadLogforCRS(c *gin.Context) {
+	log := node.UserLogPool.logPool.Get().(*MetaData.UserLog)
+	err := c.BindJSON(&log)
+
+	if err != nil {
+		common.Logger.Error("解析crs request失败", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	} else if log.Data == "" || log.Permission == "" || log.Source == "" || log.Name == "" ||
+		log.Timestamp == "" || log.Level == 0 || log.IdentityIdentifier == "" || log.UGroupID == 0 {
+		common.Logger.Error("缺少必要字段")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err, "message": "缺少必要字段"})
+	} else if !node.mongo.HasIdentityData("identityidentifier", log.IdentityIdentifier) {
+		common.Logger.Error("数据库不存在该身份标识，认证失败", log.IdentityIdentifier)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err, "message": "数据库不存在该身份标识"})
+	}
+	node.UserLogPool.logPool.Put(log)
+	transaction := node.UserLogPool.logPool.Get().(*MetaData.UserLog)
+	if log.Level == code.NORMAL {
+		transaction.Data = log.Data
+		transaction.Permission = log.Permission
+		transaction.IdentityIdentifier = log.IdentityIdentifier
+		transaction.Source = log.Source
+		transaction.Name = log.Name
+		transaction.Timestamp = log.Timestamp
+		transaction.Level = log.Level
+		transaction.Command = log.Command
+		transaction.UGroupID = log.UGroupID
+
+		transaction.Protocol = log.Protocol
+		transaction.Destination = log.Destination
+		transaction.WebSite = log.WebSite
+		transaction.FilterWebSite = log.FilterWebSite
+		transaction.IsInner = log.IsInner
+	} else {
+		transaction.Data = log.Data
+		transaction.Permission = log.Permission
+		transaction.IdentityIdentifier = log.IdentityIdentifier
+		transaction.Source = log.Source
+		transaction.Name = log.Name
+		transaction.Timestamp = log.Timestamp
+		transaction.Level = log.Level
+		transaction.Command = log.Command
+		transaction.UGroupID = log.UGroupID
+
+		transaction.Protocol = log.Protocol
+		transaction.Destination = log.Destination
+		transaction.WebSite = log.WebSite
+		transaction.FilterWebSite = log.FilterWebSite
+		transaction.WarnInfo = log.WarnInfo
+		transaction.IsInner = log.IsInner
+	}
+
+	node.UserLogPool.logChan <- transaction
+	node.UserLogPool.logPool.Put(transaction)
+
+	common.Logger.Info(log.IdentityIdentifier, "日志已加入到上传队列")
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": transaction, "message": "日志已加入到上传队列"})
 }
 
 func (node *Node) ping(c *gin.Context) {
@@ -395,7 +462,6 @@ type BlockInfRequest struct {
 // @receiver node
 // @param res
 // @param conn
-//
 func (node *Node) getBlockInfByPage(c *gin.Context) {
 	//res := BlockInfRequest{}
 

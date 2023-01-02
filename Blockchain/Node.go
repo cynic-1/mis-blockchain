@@ -396,7 +396,7 @@ func (node *Node) Start() {
 			//go node.network.StartVPNMGMTServer()
 			//go node.network.StartVPNFEServer()
 			go node.network.StartCRSServer()
-			//go node.StartUploadUserLogServer()
+			go node.StartUploadUserLogServer()
 			go node.StartUploadCRSRecordServer()
 			//go node.network.StartFEServer()
 		}
@@ -405,7 +405,7 @@ func (node *Node) Start() {
 		//go node.network.StartVPNMGMTServer()
 		//go node.network.StartVPNFEServer()
 		go node.network.StartCRSServer()
-		//go node.StartUploadUserLogServer()
+		go node.StartUploadUserLogServer()
 		go node.StartUploadCRSRecordServer()
 	}
 	//go node.StartLogsAnalysisServer()

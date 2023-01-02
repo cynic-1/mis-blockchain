@@ -742,14 +742,6 @@ func (node *Node) GetPageWarningLogsByTimestampforCRS(c *gin.Context) {
 }
 
 func (node *Node) GetPageLogsByTimestampforCRS(c *gin.Context) {
-	//res := timestampRequest{}
-
-	//err := c.BindJSON(&res)
-	//if err != nil {
-	//	common.Logger.Error("解析crs request失败", err.Error())
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": err})
-	//	return
-	//}
 	if c.Query("IdentityIdentifier") == "" {
 		pageSize, err := strconv.Atoi(c.Query("PageSize"))
 		if err != nil {

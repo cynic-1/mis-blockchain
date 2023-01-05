@@ -121,7 +121,7 @@ func (node *Node) uploadLogforCRS(c *gin.Context) {
 		transaction.Name = log.Name
 		transaction.Timestamp = log.Timestamp
 		transaction.Level = log.Level
-		transaction.Command = log.Command
+		transaction.Command = "UploadNormalUserLog"
 		transaction.UGroupID = log.UGroupID
 
 		transaction.Protocol = log.Protocol
@@ -137,7 +137,7 @@ func (node *Node) uploadLogforCRS(c *gin.Context) {
 		transaction.Name = log.Name
 		transaction.Timestamp = log.Timestamp
 		transaction.Level = log.Level
-		transaction.Command = log.Command
+		transaction.Command = "UploadWarningUserLog"
 		transaction.UGroupID = log.UGroupID
 
 		transaction.Protocol = log.Protocol

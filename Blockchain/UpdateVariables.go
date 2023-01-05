@@ -95,12 +95,12 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 
 				node.mongo.SaveTransactionAnalysisToDatabase(ta)
 
-				var tlist []MetaData.CrsChainRecord
-				for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
-					if j.Value != nil {
-						tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
-					}
-				}
+				//var tlist []MetaData.CrsChainRecord
+				//for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
+				//	if j.Value != nil {
+				//		tlist = append(tlist, j.Value.(MetaData.CrsChainRecord))
+				//	}
+				//}
 				//node.mongo.SaveTransactionListToDatabase(tlist)
 			}
 			node.BCStatus.Mutex.Unlock()

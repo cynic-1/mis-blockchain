@@ -7,6 +7,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gin-gonic/gin v1.7.4
+	github.com/gogf/gf/v2 v2.2.3
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gosuri/uitable v0.0.4
 	github.com/karlseguin/ccache/v2 v2.0.8
@@ -19,6 +20,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.229
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.231
+	github.com/tiger1103/gfast/v3 v3.0.0-20221025015030-3a0da3451e55
 	github.com/tinylib/msgp v1.1.6
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/yudeguang/ratelimit v0.0.0-20200825060956-51ad1c50d774

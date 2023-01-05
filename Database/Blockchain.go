@@ -16,6 +16,7 @@ import (
 	"hash/crc32"
 	"log"
 	"strconv"
+	"time"
 )
 
 func (pl *Mongo) QueryHeight() int {
@@ -525,4 +526,53 @@ func (pl *Mongo) GetPageBlockFromDatabaseByTimestamp(skip, limit int, beginTime,
 	}
 
 	return blockgroup
+}
+
+type Transaction struct {
+	TXType    int    `msg:"txtype"`
+	Timestamp string `msg:"timestamp"`
+	Data      string `msg:"data"`
+}
+
+func (pl *Mongo) SaveTransactionToDatabase(txtype int, transaction string) {
+	var trans Transaction
+	typ := "Transaction"
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + typ
+	trans.TXType = txtype
+	trans.Data = transaction
+	trans.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+	pl.InsertToMogoTransaction(trans, subname)
+}
+
+func (pl *Mongo) GetPageTransFromDatabase(skip, limit int) []Transaction {
+	typ := "Transaction"
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + typ
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	transactions := make([]Transaction, limit)
+	c := session.DB("blockchain").C(subname)
+	err := c.Find(nil).Skip(skip).Limit(limit).All(&transactions)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return transactions
+}
+
+func (pl *Mongo) GetPageTransFromDatabaseByTimestamp(skip, limit int, beginTime, endTime float64) []Transaction {
+	typ := "Transaction"
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + typ
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	transactions := make([]Transaction, limit)
+	c := session.DB("blockchain").C(subname)
+	err := c.Find(bson.M{"timestamp": bson.M{"$lte": endTime, "$gte": beginTime}}).Skip(skip).Limit(limit).All(&transactions)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return transactions
 }

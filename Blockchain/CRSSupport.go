@@ -1,6 +1,7 @@
 package Node
 
 import (
+	MongoDB "MIS-BC/Database"
 	"MIS-BC/MetaData"
 	"MIS-BC/common"
 	"MIS-BC/security/code"
@@ -55,6 +56,8 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getLastBGsInfo", node.getLastBlocksInfoforCRS)
 	// 获取最近的多个交易信息
 	v.GET("getLastTransactionsInfo", node.getLastTransactionsInfoforCRS)
+	// 获取分页交易信息
+	v.GET("getTransactionInfByPage", node.getTransactionInfByPage)
 
 	// 日志测试
 	v.POST("uploadLog", node.uploadLogforCRS)
@@ -608,6 +611,68 @@ func (node *Node) getLastTransactionsInfoforCRS(c *gin.Context) {
 	node.BCStatus.Mutex.RUnlock()
 
 	c.JSON(http.StatusOK, gin.H{"error": nil, "data": txs})
+}
+
+// getTransactionInfByPage 按页获取交易信息
+//
+// @Description: 按页获取交易信息
+// @receiver node
+// @param c
+func (node *Node) getTransactionInfByPage(c *gin.Context) {
+	pageSize, err := strconv.Atoi(c.Query("PageSize"))
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	pageNum, err := strconv.Atoi(c.Query("PageNum"))
+	if err != nil {
+		common.Logger.Error(err)
+	}
+
+	beginTime := c.Query("BeginTime")
+	endTime := c.Query("EndTime")
+
+	var txs []MongoDB.Transaction
+	var message PageTransactionInf
+	skip := pageSize * (pageNum - 1)
+
+	if beginTime == "" {
+		txs = node.mongo.GetPageTransFromDatabase(skip, pageSize)
+	} else {
+		begin, err := strconv.ParseFloat(beginTime, 64)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+
+		end, err := strconv.ParseFloat(endTime, 64)
+		if err != nil {
+			common.Logger.Error(err)
+		}
+		txs = node.mongo.GetPageTransFromDatabaseByTimestamp(skip, pageSize, begin, end)
+	}
+
+	for _, eachTransaction := range txs {
+		transactionHeader, transactionInterface := MetaData.DecodeTransaction([]byte(eachTransaction.Data))
+		switch transactionHeader.TXType {
+		case MetaData.IdentityAction:
+			if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+			}
+		case MetaData.UserLogOperation:
+			if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+			}
+		case MetaData.CRSRecordOperation:
+			if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+			}
+		}
+	}
+
+	common.Logger.Info("分页获取交易信息：", message.Transactions)
+
+	message.Total = len(message.Transactions)
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
 }
 
 type timestampRequest struct {

@@ -32,6 +32,7 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 			node.TxsPeriodAmount = uint64(len(eachBlock.Transactions))
 			for _, eachTransaction := range eachBlock.Transactions {
 				transactionHeader, transactionInterface := MetaData.DecodeTransaction(eachTransaction)
+				node.UpdateTransactionVariables(transactionHeader.TXType, eachTransaction)
 				switch transactionHeader.TXType {
 				case MetaData.IdentityAction:
 					node.UpdateIdentityVariables(transactionInterface)
@@ -104,6 +105,10 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 	node.UpdateIdTransOk()
 }
 
+func (node *Node) UpdateTransactionVariables(transactionType int, transaction []byte) {
+	node.mongo.SaveTransactionToDatabase(transactionType, string(transaction))
+}
+
 func (node *Node) UpdateIdentityVariables(transactionInterface MetaData.TransactionInterface) {
 	if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
 		node.BCStatus.Mutex.Lock()
@@ -124,6 +129,7 @@ func (node *Node) UpdateIdentityVariables(transactionInterface MetaData.Transact
 		// TODO: 内存里没有存储最近四个交易时，回去像数据库中获取
 
 		node.BCStatus.Mutex.Unlock()
+
 		switch transaction.Command {
 		case "Registry":
 			node.mongo.SaveIdentityToDatabase(*transaction)
@@ -204,7 +210,6 @@ func (node *Node) UpdateIdentityVariables(transactionInterface MetaData.Transact
 			common.Logger.Info("身份", transaction.IdentityIdentifier, "微信解绑成功")
 		}
 	}
-
 }
 
 func (node *Node) UpdateUserLogVariables(transactionInterface MetaData.TransactionInterface) {

@@ -339,6 +339,19 @@ func (pl *Mongo) InsertToMogoCRSRecord(item MetaData.CrsChainRecord, index strin
 	}
 }
 
+func (pl *Mongo) InsertToMogoTransaction(item Transaction, index string) {
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	//index_mongo := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(index))))
+	c := session.DB("blockchain").C(index)
+
+	err := c.Insert(&item)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+}
+
 func (pl *Mongo) InsertToMogoBCStatus(item MetaData.BCStatus, index string) {
 	session := pl.pool.AcquireSession()
 	defer session.Release()
@@ -436,6 +449,10 @@ func (pl *Mongo) deleteDB() {
 	index11 := tmp + "-" + "identityTrans"
 	index12 := tmp + "-" + "blockstate"
 	index13 := tmp + "-" + "txs_analysis"
+	index14 := tmp + "-" + "UserLog-Warning"
+	index15 := tmp + "-" + "UserLog-All"
+	index16 := tmp + "-" + "Transaction"
+	index17 := tmp + "-" + "CRS_Record"
 
 	height := pl.GetHeight()
 	for i := 0; i <= height/(10*10000); i++ {
@@ -456,6 +473,11 @@ func (pl *Mongo) deleteDB() {
 	_ = session.DB("blockchain").C(index11).DropCollection()
 	_ = session.DB("blockchain").C(index12).DropCollection()
 	_ = session.DB("blockchain").C(index13).DropCollection()
+	_ = session.DB("blockchain").C(index14).DropCollection()
+	_ = session.DB("blockchain").C(index15).DropCollection()
+	_ = session.DB("blockchain").C(index16).DropCollection()
+	_ = session.DB("blockchain").C(index17).DropCollection()
+
 	_ = session.DB("blockchain").C(tmp + "-block").DropCollection()
 	_ = session.DB("blockchain").C(tmp + "-blockgroup").DropCollection()
 	_ = session.DB("blockchain").C(tmp).DropCollection()

@@ -269,10 +269,15 @@ func (pl *Mongo) GetWithoutCertIdentityCountFromDatabase() int {
 }
 
 func (pl *Mongo) SaveIdentityToDatabase(item MetaData.Identity) {
-	typ := "Identity"
+	typ1 := "Identity"
+	//typ2 := "Transaction"
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
-	subname := index + "-" + typ
-	pl.InsertToMogoIdentity(encryptIdentity(item), subname)
+	subname1 := index + "-" + typ1
+	//subname2 := index + "-" + typ2
+
+	pl.InsertToMogoIdentity(encryptIdentity(item), subname1)
+	//pl.InsertToMogoIdentity(encryptIdentity(item), subname2)
+
 }
 
 func (pl *Mongo) DeleteIdentity(key, value string) {

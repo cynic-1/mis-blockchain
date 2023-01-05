@@ -24,14 +24,16 @@ import (
 func (pl *Mongo) SaveNormalUserLogToDatabase(item MetaData.UserLog) {
 	typ1 := "UserLog"
 	typ2 := "UserLog-All"
+	//typ3 := "Transaction"
 
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 	subname1 := index + "-" + typ1
 	subname2 := index + "-" + typ2
+	//subname3 := index + "-" + typ3
 
 	pl.InsertToMogoUserLog(encryptUserLog(item), subname1)
 	pl.InsertToMogoUserLog(encryptUserLog(item), subname2)
-
+	//pl.InsertToMogoUserLog(encryptUserLog(item), subname3)
 }
 
 func (pl *Mongo) SaveWarningUserLogToDatabase(item MetaData.UserLog) {

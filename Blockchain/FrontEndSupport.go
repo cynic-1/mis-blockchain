@@ -68,11 +68,25 @@ type PageIdentityInf struct {
 
 // 分页区块信息
 // @Description:
-//  1. 区块链后台给管理员前端的回复的分页身份信息
+//  1. 区块链后台给管理员前端的回复的分页区块信息
 //
 type PageBlockGroupInf struct {
 	Blockgroups []MetaData.BlockGroup
 	Total       int
+}
+
+type TransactionforCRS struct {
+	TransactionType int
+	Transaction     interface{}
+}
+
+// 分页交易信息
+// @Description:
+//  1. 区块链后台给管理员前端的回复的分页交易信息
+//
+type PageTransactionInf struct {
+	Transactions []TransactionforCRS
+	Total        int
 }
 
 //type PageIdentityMutableInf struct {

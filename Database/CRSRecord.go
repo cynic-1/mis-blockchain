@@ -8,11 +8,16 @@ import (
 )
 
 func (pl *Mongo) SaveCRSRecordToDatabase(item MetaData.CrsChainRecord) {
-	typ := "CRS_Record"
-	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
-	subname := index + "-" + typ
+	typ1 := "CRS_Record"
+	//typ2 := "Transaction"
 
-	pl.InsertToMogoCRSRecord(encryptRecord(item), subname)
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname1 := index + "-" + typ1
+	//subname2 := index + "-" + typ2
+
+	pl.InsertToMogoCRSRecord(encryptRecord(item), subname1)
+	//pl.InsertToMogoCRSRecord(encryptRecord(item), subname2)
+
 }
 
 func decryptAllRecord(sources []MetaData.CrsChainRecord) []MetaData.CrsChainRecord {

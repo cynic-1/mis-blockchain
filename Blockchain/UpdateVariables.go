@@ -64,10 +64,18 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 				ta.PreTxsNum = node.BCStatus.Overview.PreTransactionNum
 				common.Logger.Info("overview info: ", node.BCStatus.Overview, "\ttransactionanalysis:", ta)
 
-				var cr []MetaData.CrsChainRecord
+				var cr []interface{}
 				for j := node.BCStatus.TxsList.Front(); j != nil; j = j.Next() {
 					if j.Value != nil {
-						cr = append(cr, *(j.Value.(*MetaData.CrsChainRecord)))
+						if transaction, ok := j.Value.(MetaData.Identity); ok {
+							cr = append(cr, transaction)
+						}
+						if transaction, ok := j.Value.(MetaData.UserLog); ok {
+							cr = append(cr, transaction)
+						}
+						if transaction, ok := j.Value.(MetaData.CrsChainRecord); ok {
+							cr = append(cr, transaction)
+						}
 					} else {
 						cr = append(cr, MetaData.CrsChainRecord{})
 					}
@@ -83,7 +91,6 @@ func (node *Node) UpdateVariables(bg *MetaData.BlockGroup) {
 						bgs = append(bgs, MetaData.BlockGroup{})
 					}
 				}
-				common.Logger.Info("bg list: ", heights)
 				common.Logger.Info("transaction list:", cr)
 
 				node.mongo.SaveTransactionAnalysisToDatabase(ta)

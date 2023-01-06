@@ -685,18 +685,18 @@ func (node *Node) getTransactionInfByTxtNum(c *gin.Context) {
 	switch transactionHeader.TXType {
 	case MetaData.IdentityAction:
 		if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
-			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+			message = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
 		}
 	case MetaData.UserLogOperation:
 		if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
-			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+			message = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
 		}
 	case MetaData.CRSRecordOperation:
 		if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
-			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+			message = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
 		}
 	}
-	common.Logger.Info("根据交易号获取交易信息：", message.Transaction)
+	common.Logger.Info("根据交易号获取交易信息：", message)
 
 	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
 }

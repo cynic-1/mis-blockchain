@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -104,4 +105,11 @@ func PathExists(path string) (bool, error) {
 		}
 	}
 	return false, err
+}
+
+//返回一个32位md5加密后的字符串
+func GetMD5Encode(data string) string {
+	h := md5.New()
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum(nil))
 }

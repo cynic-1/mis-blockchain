@@ -11,12 +11,12 @@ package MongoDB
 import (
 	"MIS-BC/MetaData"
 	"MIS-BC/common"
+	"MIS-BC/utils"
 	"encoding/json"
 	"gopkg.in/mgo.v2/bson"
 	"hash/crc32"
 	"log"
 	"strconv"
-	"time"
 )
 
 func (pl *Mongo) QueryHeight() int {
@@ -530,6 +530,7 @@ func (pl *Mongo) GetPageBlockFromDatabaseByTimestamp(skip, limit int, beginTime,
 
 type Transaction struct {
 	TXType    int    `msg:"txtype"`
+	TXTNum    string `msg:"txtnum"`
 	Timestamp string `msg:"timestamp"`
 	Data      string `msg:"data"`
 }
@@ -541,7 +542,8 @@ func (pl *Mongo) SaveTransactionToDatabase(txtype int, transaction string) {
 	subname := index + "-" + typ
 	trans.TXType = txtype
 	trans.Data = transaction
-	trans.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+	trans.Timestamp = strconv.FormatFloat(utils.GetCurrentTime(), 'f', 0, 64)
+	trans.TXTNum = utils.GetMD5Encode(trans.Timestamp + trans.Data)
 	pl.InsertToMogoTransaction(trans, subname)
 }
 
@@ -561,7 +563,7 @@ func (pl *Mongo) GetPageTransFromDatabase(skip, limit int) []Transaction {
 	return transactions
 }
 
-func (pl *Mongo) GetPageTransFromDatabaseByTimestamp(skip, limit int, beginTime, endTime float64) []Transaction {
+func (pl *Mongo) GetPageTransFromDatabaseByTimestamp(skip, limit int, beginTime, endTime string) []Transaction {
 	typ := "Transaction"
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 	subname := index + "-" + typ
@@ -575,4 +577,20 @@ func (pl *Mongo) GetPageTransFromDatabaseByTimestamp(skip, limit int, beginTime,
 		common.Logger.Error(err)
 	}
 	return transactions
+}
+
+func (pl *Mongo) GetPageTransFromDatabaseByTxtNum(txtNum string) Transaction {
+	typ := "Transaction"
+	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
+	subname := index + "-" + typ
+	session := pl.pool.AcquireSession()
+	defer session.Release()
+
+	var transaction Transaction
+	c := session.DB("blockchain").C(subname)
+	err := c.Find(bson.M{"txtnum": txtNum}).One(&transaction)
+	if err != nil {
+		common.Logger.Error(err)
+	}
+	return transaction
 }

@@ -58,6 +58,8 @@ func (node *Node) HandleCRSMessage(v *gin.RouterGroup) {
 	v.GET("getLastTransactionsInfo", node.getLastTransactionsInfoforCRS)
 	// 获取分页交易信息
 	v.GET("getTransactionInfByPage", node.getTransactionInfByPage)
+	// 获取特定交易号的交易信息
+	v.GET("getTransactionInfByTxtNum", node.getTransactionInfByTxtNum)
 
 	// 日志测试
 	v.POST("uploadLog", node.uploadLogforCRS)
@@ -638,16 +640,7 @@ func (node *Node) getTransactionInfByPage(c *gin.Context) {
 	if beginTime == "" {
 		txs = node.mongo.GetPageTransFromDatabase(skip, pageSize)
 	} else {
-		begin, err := strconv.ParseFloat(beginTime, 64)
-		if err != nil {
-			common.Logger.Error(err)
-		}
-
-		end, err := strconv.ParseFloat(endTime, 64)
-		if err != nil {
-			common.Logger.Error(err)
-		}
-		txs = node.mongo.GetPageTransFromDatabaseByTimestamp(skip, pageSize, begin, end)
+		txs = node.mongo.GetPageTransFromDatabaseByTimestamp(skip, pageSize, beginTime, endTime)
 	}
 
 	for _, eachTransaction := range txs {
@@ -655,15 +648,15 @@ func (node *Node) getTransactionInfByPage(c *gin.Context) {
 		switch transactionHeader.TXType {
 		case MetaData.IdentityAction:
 			if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
-				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: eachTransaction.TXTNum, Transaction: *transaction})
 			}
 		case MetaData.UserLogOperation:
 			if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
-				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: eachTransaction.TXTNum, Transaction: *transaction})
 			}
 		case MetaData.CRSRecordOperation:
 			if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
-				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, Transaction: *transaction})
+				message.Transactions = append(message.Transactions, TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: eachTransaction.TXTNum, Transaction: *transaction})
 			}
 		}
 	}
@@ -671,6 +664,39 @@ func (node *Node) getTransactionInfByPage(c *gin.Context) {
 	common.Logger.Info("分页获取交易信息：", message.Transactions)
 
 	message.Total = len(message.Transactions)
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
+}
+
+// getTransactionInfByTxtNum 按交易号获取交易信息
+//
+// @Description: 按交易号获取交易信息
+// @receiver node
+// @param c
+func (node *Node) getTransactionInfByTxtNum(c *gin.Context) {
+	txtNum := c.Query("TxtNum")
+
+	var txs MongoDB.Transaction
+	var message TransactionforCRS
+
+	txs = node.mongo.GetPageTransFromDatabaseByTxtNum(txtNum)
+
+	transactionHeader, transactionInterface := MetaData.DecodeTransaction([]byte(txs.Data))
+	switch transactionHeader.TXType {
+	case MetaData.IdentityAction:
+		if transaction, ok := transactionInterface.(*MetaData.Identity); ok {
+			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+		}
+	case MetaData.UserLogOperation:
+		if transaction, ok := transactionInterface.(*MetaData.UserLog); ok {
+			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+		}
+	case MetaData.CRSRecordOperation:
+		if transaction, ok := transactionInterface.(*MetaData.CrsChainRecord); ok {
+			message.Transaction = TransactionforCRS{TransactionType: transactionHeader.TXType, TransactionNum: txs.TXTNum, Transaction: *transaction}
+		}
+	}
+	common.Logger.Info("根据交易号获取交易信息：", message.Transaction)
 
 	c.JSON(http.StatusOK, gin.H{"error": nil, "data": message})
 }

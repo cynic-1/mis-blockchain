@@ -77,6 +77,7 @@ type PageBlockGroupInf struct {
 
 type TransactionforCRS struct {
 	TransactionType int
+	TransactionNum  string
 	Transaction     interface{}
 }
 
@@ -376,7 +377,6 @@ func (node *Node) HandleFrontEndMessage(data []byte, conn net.Conn) {
 			node.GetAllActionsByIdentityIdentifierAndPage(res, conn)
 		case "GetNumOfIdentityByStatus":
 			node.GetNumOfIdentityByStatus(res, conn)
-
 		}
 		return
 	} else if res["Type"] == "userlog" { // 用户日志类型操作

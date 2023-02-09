@@ -370,12 +370,15 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 	blockgroup := make([]MetaData.BlockGroup, limit)
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 
-	first := (skip + 1) % 100000
-	last := (skip + limit) % 100000
+	first := (skip + 1) / 100000
+	last := (skip + limit) / 100000
 
-	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+	curCollection := pl.Height / (10 * 100000)
 
-	if 99990 <= first && first < 100000 && 0 <= last && last < 10 {
+	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)))
+
+	// 100000-limit <= first && first < 100000 && 0 <= last && last < limit
+	if first != last {
 		err := c1.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
 		if err != nil {
 			common.Logger.Error(err)
@@ -383,13 +386,13 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 
 		blockgroup1 := make([]MetaData.BlockGroup, limit-len(blockgroup))
 
-		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)-1))
 		err = c2.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup1)
 		if err != nil {
 			common.Logger.Error(err)
 		}
 
-		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)))
+		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)))
 		for _, bg := range blockgroup {
 			var blocks []MetaData.Block
 			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
@@ -404,7 +407,7 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 			bg.Blocks = true_blocks
 		}
 
-		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa((skip+1)/(10*10000)+1))
+		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)-1))
 		for _, bg := range blockgroup1 {
 			var blocks []MetaData.Block
 			err = c4.Find(bson.M{"height": bg.Height}).All(&blocks)

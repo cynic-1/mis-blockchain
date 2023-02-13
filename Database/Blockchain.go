@@ -370,29 +370,57 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 	blockgroup := make([]MetaData.BlockGroup, limit)
 	index := strconv.Itoa(int(crc32.ChecksumIEEE([]byte(pl.Pubkey))))
 
-	first := (skip + 1) / 100000
-	last := (skip + limit) / 100000
-
 	curCollection := pl.Height / 100000
 
-	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)))
+	c0 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(curCollection))
+	cCount, _ := c0.Count()
+
+	firstOne := skip + 1
+	lastOne := skip + limit
+
+	var firstCollection, lastCollection int
+	if firstOne <= cCount {
+		firstCollection = curCollection
+	} else {
+		firstCollection = curCollection - (skip+1-cCount)/100000 - 1
+	}
+
+	if lastOne <= cCount {
+		lastCollection = curCollection
+	} else {
+		lastCollection = curCollection - (skip+limit-cCount)/100000 - 1
+	}
+
+	c1 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(firstCollection))
 
 	// 100000-limit <= first && first < 100000 && 0 <= last && last < limit
-	if first != last {
-		err := c1.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+	if firstCollection != lastCollection {
+		newCollection := curCollection
+		newSkip := skip
+		ok := true
+		for newCollection != firstCollection {
+			if ok {
+				newSkip -= cCount
+				ok = false
+			} else {
+				newSkip -= 100000
+			}
+			newCollection -= 1
+		}
+		err := c1.Find(nil).Sort("-height").Skip(newSkip).Limit(limit).All(&blockgroup)
 		if err != nil {
 			common.Logger.Error(err)
 		}
 
 		blockgroup1 := make([]MetaData.BlockGroup, limit-len(blockgroup))
 
-		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)-1))
-		err = c2.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup1)
+		c2 := session.DB("blockchain").C(index + "-blockgroup" + "-" + strconv.Itoa(lastCollection))
+		err = c2.Find(nil).Sort("-height").Limit(limit - len(blockgroup)).All(&blockgroup1)
 		if err != nil {
 			common.Logger.Error(err)
 		}
 
-		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)))
+		c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(firstCollection))
 		for _, bg := range blockgroup {
 			var blocks []MetaData.Block
 			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
@@ -407,7 +435,7 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 			bg.Blocks = true_blocks
 		}
 
-		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(curCollection-(skip+1)/(10*10000)-1))
+		c4 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(lastCollection))
 		for _, bg := range blockgroup1 {
 			var blocks []MetaData.Block
 			err = c4.Find(bson.M{"height": bg.Height}).All(&blocks)
@@ -424,14 +452,26 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 		}
 
 	} else {
-		err := c1.Find(nil).Sort("-height").Skip(skip).Limit(limit).All(&blockgroup)
+		newCollection := curCollection
+		newSkip := skip
+		ok := true
+		for newCollection != firstCollection {
+			if ok {
+				newSkip -= cCount
+				ok = false
+			} else {
+				newSkip -= 100000
+			}
+			newCollection -= 1
+		}
+		err := c1.Find(nil).Sort("-height").Skip(newSkip).Limit(limit).All(&blockgroup)
 		if err != nil {
 			common.Logger.Error(err)
 		}
 
 		for _, bg := range blockgroup {
 			var blocks []MetaData.Block
-			c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(bg.Height/(10*10000)))
+			c3 := session.DB("blockchain").C(index + "-block" + "-" + strconv.Itoa(firstCollection))
 			err = c3.Find(bson.M{"height": bg.Height}).All(&blocks)
 			if err != nil {
 				common.Logger.Error(err)
@@ -444,7 +484,6 @@ func (pl *Mongo) GetPageBlockFromDatabase(skip, limit int) []MetaData.BlockGroup
 			bg.Blocks = true_blocks
 		}
 	}
-
 	return blockgroup
 }
 

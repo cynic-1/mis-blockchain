@@ -2,7 +2,6 @@ package Node
 
 import (
 	"MIS-BC/AccountManager"
-	"MIS-BC/Database"
 	"MIS-BC/Message"
 	"MIS-BC/MetaData"
 	"MIS-BC/Network"
@@ -26,8 +25,6 @@ import (
 	"MIS-BC/utils"
 	"encoding/base64"
 	"fmt"
-	"github.com/karlseguin/ccache/v2"
-	"github.com/patrickmn/go-cache"
 	"github.com/yudeguang/ratelimit"
 	"log"
 	"strconv"
@@ -174,6 +171,11 @@ func (node *Node) Init() {
 	//node.tc = &tcm.Tcm{
 	//	ExeHashList: make(map[uint64]string),
 	//}
+
+	// 设置 HTTP 服务器和路由
+	router := node.SetupHTTPServer()
+	// 启动服务器
+	router.Run(":8080")
 
 	node.mongo = &MongoDB.Mongo{}
 	node.keyManager = &keymanager.KeyManager{}
